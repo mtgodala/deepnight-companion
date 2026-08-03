@@ -16,6 +16,7 @@
   <span id="tb-su" data-i18n-title="tbSuTitle" title="Supply Units — 1,000 SU/day (B3 p.46)">📦 —</span>
   <span id="tb-crew" data-i18n-title="tbCrewTitle" title="ECEI = CEI+CEIM · morale (MOR) · fatigue (CFI)">👥 —</span>
   <span class="spacer"></span>
+  <button id="btn-rolls" class="tab-btn" data-i18n-title="rollsBtnTip" title="Roll history">🎲</button>
   <button id="btn-lang" class="tab-btn" title="Switch language / zmień język">PL</button>
   <button id="btn-undo" class="tab-btn" data-i18n="undoBtn" data-i18n-title="undoTitle" title="Undo the last action (table mistake correction)">↩ undo</button>
   <button id="btn-journal" class="tab-btn" data-i18n="journalBtn">Log</button>
@@ -42,6 +43,7 @@
   <div id="map-col">
     <div id="map-head">
       <select id="sec-select"></select>
+      <select id="pin-select" class="hidden"></select>
       <span id="sec-status" class="dim"></span>
       <button id="btn-home" data-i18n="homeBtn" data-i18n-title="homeTitle" title="Return to ship position">to ship</button>
     </div>
@@ -86,6 +88,11 @@
       <button id="note-add" data-i18n="noteAdd">Add entry</button>
     </div>
   </div>
+</div>
+
+<div id="rolls-panel" class="panel hidden">
+  <h3 data-i18n="rollsTitle">Roll history</h3>
+  <div id="rolls-list"></div>
 </div>
 
 <dialog id="dlg">

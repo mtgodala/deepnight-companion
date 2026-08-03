@@ -17,7 +17,11 @@ const api = async (path, opts = {}) => {
 };
 
 let STATE = null, SECTORS = [], CUR_SECTOR = null, CUR_MAP = null, SELECTED = null;
+let RANGE_SEL = null;      // {sector, hex, j} — planowany zasięg od wybranego hexu
+let BOOKMARKS = [];        // piny hexów (state/bookmarks.json)
+const ROLLS = [];          // historia rzutów tej sesji przeglądarki (max 20)
 const SEC_CACHE = {};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ================================ i18n ================================== */
 
@@ -46,6 +50,7 @@ const PL = {
     journalTitle: "Dziennik okrętowy (ship's log)", journalClose: "← mapa",
     noteAuthorPh: "autor / postać", noteTextPh: "wpis do logu...", noteAdd: "Dodaj wpis",
     cancel: "Anuluj", jumpText: "Jumpspace — 7 dni",
+    rollsTitle: "Historia rzutów", rollsBtnTip: "Historia rzutów (ta sesja)",
   },
   /* dekodery */
   STARPORT: {
@@ -160,6 +165,9 @@ const PL = {
   chipGG: "⛽ gazowy olbrzym", chipGGno: "brak gazowego olbrzyma",
   chipHab: "🌍 świat zdatny do życia", chipBorder: "🌗 świat graniczny",
   chipAmber: "⚠ strefa AMBER", chipRed: "⛔ strefa RED", chipEmpty: "pusty hex",
+  rangeHint: "zasięg stąd:",
+  pinTip: "Przypnij hex (cel wyprawy)", unpinTip: "Odepnij hex",
+  pinsPh: "★ piny", rollsEmpty: "Brak rzutów w tej sesji.",
   jumpBtn: (d) => `Skok (jump) — ${d} pc`,
   jumpRule: (t, can) => `${t} t paliwa · ~7 dni${can ? "" : " · za mało paliwa"}`,
   courseBtn: (d, j) => `Kurs na cel — ${d} pc (~${j} skoków)`,
@@ -223,6 +231,7 @@ const EN = {
     journalTitle: "Ship's log", journalClose: "← map",
     noteAuthorPh: "author / character", noteTextPh: "log entry...", noteAdd: "Add entry",
     cancel: "Cancel", jumpText: "Jumpspace — 7 days",
+    rollsTitle: "Roll history", rollsBtnTip: "Roll history (this session)",
   },
   STARPORT: {
     A: "class A starport — excellent (shipyard, refined fuel)",
@@ -328,6 +337,9 @@ const EN = {
   chipGG: "⛽ gas giant", chipGGno: "no gas giant",
   chipHab: "🌍 habitable world", chipBorder: "🌗 borderline habitable",
   chipAmber: "⚠ AMBER zone", chipRed: "⛔ RED zone", chipEmpty: "empty hex",
+  rangeHint: "range from here:",
+  pinTip: "Pin this hex (expedition target)", unpinTip: "Unpin this hex",
+  pinsPh: "★ pins", rollsEmpty: "No rolls this session.",
   jumpBtn: (d) => `Jump — ${d} pc`,
   jumpRule: (t, can) => `${t} t of fuel · ~7 days${can ? "" : " · not enough fuel"}`,
   courseBtn: (d, j) => `Set course — ${d} pc (~${j} jumps)`,
@@ -515,7 +527,7 @@ function renderUwpGrid(view) {
 }
 
 /* chipy statusów systemu — fakty widoczne od razu, bez czytania prozy */
-function renderChips(view) {
+function renderChips(view, hex) {
   const chips = [`<span class="chip chip-si" title="${T.siChipTip}">SI ${view.si}/12</span>`];
   if (view.empty) chips.push(`<span class="chip chip-dim">${T.chipEmpty}</span>`);
   if (view.gas_giant === true) chips.push(`<span class="chip chip-ok">${T.chipGG}</span>`);
@@ -525,7 +537,19 @@ function renderChips(view) {
   if (view.bases && T.BASES[view.bases]) chips.push(`<span class="chip chip-info">${T.BASES[view.bases]}</span>`);
   if (view.zone === "A") chips.push(`<span class="chip chip-warn">${T.chipAmber}</span>`);
   if (view.zone === "R") chips.push(`<span class="chip chip-bad">${T.chipRed}</span>`);
+  /* planowanie: podświetl hexy w promieniu J1-J4 od TEGO hexu */
+  const active = RANGE_SEL && RANGE_SEL.sector === CUR_SECTOR && RANGE_SEL.hex === hex ? RANGE_SEL.j : 0;
+  chips.push(`<span class="chip chip-dim">${T.rangeHint}</span>`);
+  for (const j of [1, 2, 3, 4])
+    chips.push(`<button class="chip chip-btn${active === j ? " active" : ""}" data-j="${j}">J${j}</button>`);
+  if (active) chips.push(`<button class="chip chip-btn" data-j="0">✕</button>`);
   $("hex-chips").innerHTML = chips.join("");
+  $("hex-chips").querySelectorAll(".chip-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      const j = parseInt(b.dataset.j, 10);
+      RANGE_SEL = (!j || j === active) ? null : { sector: CUR_SECTOR, hex, j };
+      selectHex(hex);
+    }));
 }
 
 function decodeStar(s) {
@@ -738,15 +762,16 @@ const SVG_DEFS = `<defs>
   </radialGradient>
 </defs>`;
 
-function hexInfoSummary(secName, hex, info) {
-  const bits = [`${secName} ${hex}`];
-  if (info?.name) bits.push(info.name);
-  bits.push(`SI ${info?.si ?? 0}`);
-  if (info?.stars?.length) bits.push(info.stars.map(decodeStar).join(", "));
-  else if (info?.star_presence) bits.push(T.tipStar);
-  if (info?.gas_giant === true) bits.push(T.tipGG);
-  if (info?.uwp) bits.push(info.uwp);
-  return bits.join(" · ");
+function hexInfoCard(secName, hex, info) {
+  const title = `${secName} ${hex}` + (info?.name ? ` — <span class="sys-name">${info.name}</span>` : "");
+  const chips = [`<span class="chip chip-si">SI ${info?.si ?? 0}</span>`];
+  if (info?.stars?.length) chips.push(`<span class="chip">${info.stars.map(decodeStar).join(", ")}</span>`);
+  else if (info?.star_presence) chips.push(`<span class="chip chip-dim">${T.tipStar}</span>`);
+  if (info?.gas_giant === true) chips.push(`<span class="chip chip-ok">${T.tipGG}</span>`);
+  if (info?.uwp) chips.push(`<span class="chip"><code>${info.uwp}</code></span>`);
+  if (info?.zone === "A") chips.push(`<span class="chip chip-warn">AMBER</span>`);
+  if (info?.zone === "R") chips.push(`<span class="chip chip-bad">RED</span>`);
+  return `<div class="tip-title">${title}</div><div class="tip-chips">${chips.join("")}</div>`;
 }
 
 function applyView() {
@@ -756,6 +781,9 @@ function applyView() {
   svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
   /* numery hexów widoczne dopiero przy zbliżeniu */
   svg.classList.toggle("zoomed", BASE_VB && v.w < BASE_VB.w / 2.2);
+  /* glify większe przy oddaleniu (czytelność z drugiego końca stołu) */
+  const k = BASE_VB ? Math.min(1.8, Math.max(1, 1.8 * v.w / BASE_VB.w)) : 1;
+  svg.style.setProperty("--gs", k.toFixed(2));
 }
 
 async function renderMap() {
@@ -782,6 +810,18 @@ async function renderMap() {
     const d = distPc(shipW, w);
     return d >= 1 && d <= rangePc;
   };
+  /* zasieg planowany od wybranego hexu (chipy J1-J4 na karcie) */
+  let selRange = null;
+  if (RANGE_SEL) {
+    const rs = SECTORS.find((q) => q.name === RANGE_SEL.sector);
+    if (rs) selRange = { w: worldXY(rs.x, rs.y, RANGE_SEL.hex), j: RANGE_SEL.j };
+  }
+  const inRangeSel = (relX, relY) => {
+    if (!selRange) return false;
+    const w = [secX0 * 32 + (relX - 1), secY0 * 40 + (relY - 1)];
+    const d = distPc(selRange.w, w);
+    return d >= 1 && d <= selRange.j;
+  };
 
   let out = SVG_DEFS;
   /* tlo: miekkie mglawice (gradienty, bez filtrow SVG - unikamy artefaktow) */
@@ -795,17 +835,34 @@ async function renderMap() {
     const [cx, cy] = hexCenter(hx, hy);
     const si = info?.si ?? 0;
     const cls = `hex si-${Math.min(si, 12)}${opts.preview ? " preview" : ""}` +
-      `${opts.selected ? " selected" : ""}${!opts.preview && inRange(hx, hy) ? " in-range" : ""}`;
+      `${opts.selected ? " selected" : ""}${!opts.preview && inRange(hx, hy) ? " in-range" : ""}` +
+      `${inRangeSel(hx, hy) ? " in-range-sel" : ""}`;
     out += `<polygon class="${cls}" data-sec="${opts.sec}" data-hex="${opts.hex}" points="${hexPoints(cx, cy)}"/>`;
     if (!opts.preview)
       labels += `<text class="hex-label" x="${cx}" y="${cy - H / 2 + 3.6}" text-anchor="middle">${opts.hex}</text>`;
+    if (BOOKMARKS.some((m) => m.sector === opts.sec && m.hex === opts.hex))
+      labels += `<text class="pin-mark" x="${cx + R * 0.28}" y="${cy - H / 2 + 4.6}">★</text>`;
     if (!info) return;
     if (info.star_presence && info.empty !== true) {
-      const st = starStyle(info);
-      const glow = info.canon ? "glow-big" : "glow";
-      overlays += `<circle class="star-dot ${st.cls}" cx="${cx}" cy="${cy}" r="${info.canon ? Math.max(st.r, 2.6) : st.r}" fill="${st.c}" filter="url(#${glow})"/>`;
+      /* progresja odkrywania: typ gwiazdy nieznany (SI<3) = anonimowa kropka,
+         znany = barwna gwiazda; kanon = duzy glow + nazwa */
+      const typeKnown = (info.stars && info.stars.length) || info.star_class_general;
+      if (!typeKnown && !info.canon && si < 3) {
+        overlays += `<circle class="star-dot" cx="${cx}" cy="${cy}" r="${si >= 2 ? 1.5 : 1.1}" fill="var(--star-X)" opacity="${si >= 2 ? ".75" : ".5"}"/>`;
+      } else {
+        const st = starStyle(info);
+        const glow = info.canon ? "glow-big" : "glow";
+        overlays += `<circle class="star-dot ${st.cls}" cx="${cx}" cy="${cy}" r="${info.canon ? Math.max(st.r, 2.6) : st.r}" fill="${st.c}" filter="url(#${glow})"/>`;
+      }
       if (info.canon && info.name && !opts.preview)
         labels += `<text class="world-name" x="${cx}" y="${cy + H / 2 + 5.5}">${info.name.toUpperCase()}</text>`;
+      /* SI 6+: znamy pelna liste cial — pipsy pod gwiazda */
+      const nb = info.n_bodies ?? (info.bodies_detail ? info.bodies_detail.length : 0);
+      if (nb && !opts.preview) {
+        const n = Math.min(nb, 5);
+        for (let i = 0; i < n; i++)
+          overlays += `<circle class="body-pip" cx="${(cx + (i - (n - 1) / 2) * 1.7).toFixed(1)}" cy="${(cy + 4.6).toFixed(1)}" r=".55" fill="var(--g-400)"/>`;
+      }
     }
     if (info.gas_giant) {
       /* mini-planetka z pierscieniem */
@@ -892,7 +949,7 @@ async function renderMap() {
     el.addEventListener("mousemove", async (ev) => {
       const sec = el.dataset.sec, hex = el.dataset.hex;
       const m = sec === CUR_SECTOR ? CUR_MAP : await getSector(sec);
-      tip.textContent = hexInfoSummary(sec, hex, m.hexes[hex] || { si: 0 });
+      tip.innerHTML = hexInfoCard(sec, hex, m.hexes[hex] || { si: 0 });
       tip.style.left = ev.clientX + 14 + "px";
       tip.style.top = ev.clientY + 10 + "px";
       tip.classList.remove("hidden");
@@ -970,6 +1027,57 @@ function renderArrows() {
     btn.onclick = nb[dir] ? () => { SELECTED = null; VIEW = null; loadSector(nb[dir]); } : null;
   }
 }
+
+/* ping skanu na hexie (sprzatany przez re-render mapy lub catch w run()) */
+function showScanPing(hex) {
+  document.getElementById("scan-ping-g")?.remove();
+  const svg = $("hexmap");
+  const [cx, cy] = hexCenter(parseInt(hex.slice(0, 2), 10), parseInt(hex.slice(2), 10));
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.id = "scan-ping-g";
+  g.innerHTML = `<circle class="scan-ping" cx="${cx}" cy="${cy}" r="2"/>` +
+    `<circle class="scan-ping" cx="${cx}" cy="${cy}" r="2" style="animation-delay:.55s"/>`;
+  svg.appendChild(g);
+}
+
+/* ===================== HISTORIA RZUTÓW / PINY =========================== */
+
+function recordRoll(out) {
+  if (!out) return;
+  const html = fmtCheck(out.check) + (out._msg || "");
+  if (!html) return;
+  ROLLS.unshift({ when: out.date_imperial || STATE?.date_imperial || "", html });
+  if (ROLLS.length > 20) ROLLS.pop();
+  if (!$("rolls-panel").classList.contains("hidden")) renderRolls();
+}
+function renderRolls() {
+  $("rolls-list").innerHTML = ROLLS.length
+    ? ROLLS.map((r) => `<div class="roll-row"><div class="roll-when">${r.when}</div>${r.html}</div>`).join("")
+    : `<div class="dim">${T.rollsEmpty}</div>`;
+}
+$("btn-rolls").addEventListener("click", () => {
+  const p = $("rolls-panel");
+  p.classList.toggle("hidden");
+  if (!p.classList.contains("hidden")) renderRolls();
+});
+
+async function loadBookmarks() {
+  BOOKMARKS = await api("/api/bookmarks");
+  const sel = $("pin-select");
+  sel.classList.toggle("hidden", !BOOKMARKS.length);
+  sel.innerHTML = `<option value="">${T.pinsPh}</option>` +
+    BOOKMARKS.map((m, i) =>
+      `<option value="${i}">★ ${m.sector} ${m.hex}${m.label ? " — " + m.label : ""}</option>`).join("");
+}
+$("pin-select").addEventListener("change", async (e) => {
+  const m = BOOKMARKS[parseInt(e.target.value, 10)];
+  e.target.value = "";
+  if (!m) return;
+  SELECTED = m.hex;
+  VIEW = null;
+  await loadSector(m.sector);
+  selectHex(m.hex);
+});
 
 /* ============================== TOPBAR =================================== */
 
@@ -1115,8 +1223,17 @@ async function selectHex(hex) {
                    worldXY(CUR_MAP.x, CUR_MAP.y, hex));
   const badge = here ? `<span class="here-badge">${T.hereBadge}</span>`
                      : `<span class="target-badge">${T.targetBadge(d)}</span>`;
-  $("hex-title").innerHTML = `${CUR_SECTOR} ${hex}` + (view.name ? ` — ${view.name}` : "") + " " + badge;
-  renderChips(view);
+  const pinned = BOOKMARKS.some((m) => m.sector === CUR_SECTOR && m.hex === hex);
+  $("hex-title").innerHTML = `${CUR_SECTOR} ${hex}` +
+    (view.name ? ` — <span class="sys-name">${view.name}</span>` : "") +
+    `<button class="pin-btn${pinned ? " pinned" : ""}" id="pin-toggle" title="${pinned ? T.unpinTip : T.pinTip}">${pinned ? "★" : "☆"}</button> ` + badge;
+  $("pin-toggle").addEventListener("click", async () => {
+    await api("/api/bookmarks", { method: "POST",
+      body: JSON.stringify({ sector: CUR_SECTOR, hex, label: view.name || "" }) });
+    await loadBookmarks();
+    selectHex(hex);
+  });
+  renderChips(view, hex);
   $("hex-desc").innerHTML = describeSystem(view).map((s) => `<p>${s}</p>`).join("");
   renderUwpGrid(view);
   renderBodies(view);
@@ -1182,18 +1299,26 @@ function renderActions(hex, view, here, d) {
       const out = await fn();
       const notes = trNotes(out.notes).map((n) => `<div class="warn">⚠ ${n}</div>`).join("");
       $("action-result").innerHTML = fmtCheck(out.check) + (out._msg || "OK") + notes;
+      recordRoll(out);
       await refreshState();
       invalidateSector(CUR_SECTOR);
       CUR_MAP = await getSector(CUR_SECTOR);
       if (SELECTED) await selectHex(SELECTED);
       else { await renderMap(); renderArrows(); }
     } catch (e) {
+      document.getElementById("scan-ping-g")?.remove();
       $("action-result").innerHTML = `<span class="warn">✖ ${T.trNoteSrv(e.message)}</span>`;
     }
   };
   const scan = (mode) => run(async () => {
-    const out = await api("/api/action/scan", { method: "POST",
-      body: JSON.stringify({ sector: CUR_SECTOR, hex, mode }) });
+    /* "radar sweep": ping na hexie + minimalny czas, zeby skan byl WIDOCZNY */
+    showScanPing(hex);
+    const minWait = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1100;
+    const [out] = await Promise.all([
+      api("/api/action/scan", { method: "POST",
+        body: JSON.stringify({ sector: CUR_SECTOR, hex, mode }) }),
+      sleep(minWait),
+    ]);
     const roll = out.rolls?.si_gain != null ? T.scanGain(out.rolls.si_gain) : "";
     out._msg = `SI ${out.si_before} → ${out.si_after}${roll} · ${T.timeWord} ${out.time}` +
       (out.applied ? "" : T.noProgress(out.best_sweep ?? "?"));
@@ -1315,6 +1440,7 @@ $("init-go").addEventListener("click", async () => {
   $("main").classList.remove("hidden");
   renderTopbar();
   renderStats();
+  await loadBookmarks();
   await loadSector(STATE.position.sector);
   selectHex(STATE.position.hex);
 })();

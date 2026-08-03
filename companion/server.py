@@ -451,6 +451,9 @@ def sector_map(name: str) -> dict:
             if si >= 5:
                 rec = get_system_record(name, hex_)
                 rec_summary["gas_giant"] = rec.get("gas_giant")
+            if si >= 6:  # SI 6 ujawnia pelna liste cial (B3 p.71)
+                rec = get_system_record(name, hex_)
+                rec_summary["n_bodies"] = len(rec.get("bodies_detail") or [])
             hexes[hex_] = rec_summary
     here = None
     if s["position"]["sector"] == name:
@@ -757,6 +760,34 @@ def edit_defect(body: DefectBody) -> dict:
         log_event("edit", f"Usunieto {body.kind}: {body.system} (naprawa)")
     save_ship(s)
     return {key: lst}
+
+
+class BookmarkBody(BaseModel):
+    sector: str
+    hex: str
+    label: str = ""
+
+
+@app.get("/api/bookmarks")
+def list_bookmarks() -> list[dict]:
+    return _read_json(STATE / "bookmarks.json", [])
+
+
+@app.post("/api/bookmarks")
+def toggle_bookmark(body: BookmarkBody) -> dict:
+    """Pin hexu ('Chart this world') - toggle; zapis w state/bookmarks.json."""
+    marks = _read_json(STATE / "bookmarks.json", [])
+    idx = next((i for i, m in enumerate(marks)
+                if m["sector"] == body.sector and m["hex"] == body.hex), None)
+    if idx is None:
+        marks.append({"sector": body.sector, "hex": body.hex,
+                      "label": body.label, "ts": time.time()})
+        added = True
+    else:
+        marks.pop(idx)
+        added = False
+    _write_json(STATE / "bookmarks.json", marks)
+    return {"added": added, "bookmarks": marks}
 
 
 @app.get("/api/journal")

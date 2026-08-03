@@ -84,7 +84,7 @@ button .rule {
 button.primary .rule { color: #cfe2ff; }
 
 /* ------------------------------- layout --------------------------------- */
-#main { display: flex; flex: 1; min-height: 0; }
+#main { display: flex; flex: 1; min-height: 0; position: relative; }
 #map-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #map-head { display: flex; gap: 8px; align-items: center; padding: 8px 16px; }
 #map-head select {
@@ -100,10 +100,16 @@ button.primary .rule { color: #cfe2ff; }
 #hexmap text { user-select: none; -webkit-user-select: none; pointer-events: none; }
 .ship-glyph { pointer-events: none; }
 
-#side-col { width: 384px; border-left: 1px solid var(--g-700); overflow-y: auto; background: var(--g-900); }
+/* Panel boczny: szklany look (glow + cien) w layoutcie kolumnowym.
+   UWAGA: wariant overlay (panel NAD mapa) przetestowany i odrzucony —
+   hexy prawego skraju mapy byly nieklikalne pod panelem (plan 1.1, fallback). */
+#side-col { width: 400px; border-left: 1px solid var(--g-700); overflow-y: auto; background: var(--g-900); }
 .panel {
-  background: var(--g-850); padding: 16px; margin: 8px;
-  border: 1px solid var(--g-700); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--g-850) 92%, transparent);
+  padding: 16px; margin: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--g-700));
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
 }
 /* nagłówki paneli: małe, uppercase, tracking — etykieta, nie krzyk */
 .panel h2, .panel h3 {
@@ -126,7 +132,11 @@ button.primary .rule { color: #cfe2ff; }
 #init-screen h2 { font-size: 14px; }
 
 /* ------------------------- panel systemu / statku ----------------------- */
-#hex-title { font-size: 13px !important; color: var(--g-100) !important; }
+#hex-title { font-size: 15px !important; color: var(--g-100) !important; }
+.sys-name { font-style: italic; letter-spacing: .4px; }
+/* liczby nie "skaczą" przy odświeżaniu, kody UWP wyraźnie techniczne */
+code, .stat .val, #tb-date, #tb-pos, #tb-fuel, #tb-su { font-variant-numeric: tabular-nums; }
+code { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
 /* badge w panelu: hex statku vs cel — żeby nie skanować "nie wiadomo czego" */
 .here-badge, .target-badge {
   display: inline-block; vertical-align: 1px; margin-left: 4px;
@@ -149,6 +159,31 @@ button.primary .rule { color: #cfe2ff; }
 .chip-bad { border-color: color-mix(in srgb, var(--bad) 55%, transparent); color: var(--bad); }
 .chip-info { border-color: var(--g-600); color: var(--g-400); }
 .chip-dim { border-color: var(--g-700); color: var(--g-500); }
+/* chipy-przyciski J1-J4 (zasięg planowany od wybranego hexu) */
+.chip-btn { cursor: pointer; background: var(--g-800); color: var(--g-400); font: inherit; font-size: 11px; }
+.chip-btn:hover { border-color: var(--warn); color: var(--warn); background: var(--g-750); }
+.chip-btn.active { border-color: var(--warn); color: var(--warn); font-weight: 700; }
+/* pinezka hexu w tytule panelu */
+.pin-btn {
+  background: none; border: none; padding: 0 4px; margin-left: 2px;
+  font-size: 15px; line-height: 1; color: var(--g-500); cursor: pointer; vertical-align: -1px;
+}
+.pin-btn:hover { color: var(--canon); background: none; border: none; }
+.pin-btn.pinned { color: var(--canon); }
+/* tooltip jako mini-karta */
+#tooltip .tip-title { font-weight: 700; color: var(--g-100); }
+#tooltip .tip-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+#tooltip .chip { font-size: 10px; padding: 1px 7px; }
+/* panel historii rzutów */
+#rolls-panel {
+  position: fixed; right: 408px; top: 44px; z-index: 30;
+  width: 380px; max-height: 62vh; overflow-y: auto;
+  background: color-mix(in srgb, var(--g-850) 96%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.roll-row { border-bottom: 1px solid var(--g-700); padding: 7px 0; font-size: 12px; }
+.roll-row:last-child { border-bottom: none; }
+.roll-row .roll-when { color: var(--g-500); font-size: 10.5px; letter-spacing: .4px; }
 
 /* siatka UWP: małe etykiety, grube wartości — czytelne w 2 s przy stole */
 #hex-uwp { margin: 12px 0 4px; }
@@ -217,6 +252,28 @@ button.primary .rule { color: #cfe2ff; }
 .hex.selected { stroke: var(--accent); stroke-width: 1.4; }
 .hex.preview { opacity: .3; }
 .hex.in-range { stroke: #2c4f86; stroke-width: .9; }
+/* zasięg planowany od WYBRANEGO hexu (chipy J1-J4) — ciepły, przerywany */
+.hex.in-range-sel { stroke: var(--warn); stroke-width: .8; stroke-dasharray: 2.5 1.5; }
+.hex { transition: fill .12s ease, stroke .12s ease; }
+.hex:hover { stroke: var(--accent); stroke-width: .9; }
+.hex.selected { stroke: var(--accent); stroke-width: 1.8; filter: drop-shadow(0 0 3px var(--accent)); }
+
+/* glify skalowane odwrotnie do zoomu (--gs ustawia applyView) — czytelność z 1,5 m */
+#hexmap { --gs: 1; }
+.star-dot, .zone-ring { transform-box: fill-box; transform-origin: center; transform: scale(var(--gs)); }
+.zone-ring { stroke-width: 1; }
+.world-name { font-size: calc(6px * var(--gs)) !important; }
+.pin-mark {
+  font-size: calc(5px * var(--gs)); fill: var(--canon);
+  paint-order: stroke; stroke: var(--g-950); stroke-width: .8px;
+}
+
+/* "radar sweep" na hexie w trakcie skanu */
+.scan-ping { fill: none; stroke: var(--accent); pointer-events: none; animation: scanping 1.1s ease-out infinite; }
+@keyframes scanping {
+  from { r: 2; stroke-opacity: .95; stroke-width: 1.4; }
+  to { r: 13; stroke-opacity: 0; stroke-width: .4; }
+}
 /* fog of war: jasność hexu = poziom wiedzy (SI) */
 .hex.si-1 { fill: #0b1120; } .hex.si-2 { fill: #0d1425; }
 .hex.si-3 { fill: #0f172a; } .hex.si-4 { fill: #111a2f; }
@@ -224,7 +281,7 @@ button.primary .rule { color: #cfe2ff; }
 .hex.si-7 { fill: #17233e; } .hex.si-8 { fill: #192643; }
 .hex.si-9 { fill: #1b2948; } .hex.si-10, .hex.si-11, .hex.si-12 { fill: #1e2d4f; }
 
-.star-dot, .gg-icon, .zone-ring { pointer-events: none; }
+.star-dot, .gg-icon, .zone-ring, .body-pip, .scan-ping { pointer-events: none; }
 .hex-label {
   fill: var(--g-600); font-size: 3.2px; pointer-events: none;
   opacity: 0; transition: opacity .2s;
