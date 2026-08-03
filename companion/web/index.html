@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deepnight Companion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="topbar">
+  <span class="brand">RSS DEEPNIGHT REVELATION</span>
+  <span id="tb-date" data-i18n-title="tbDateTitle" title="Imperial date">—</span>
+  <span id="tb-pos">—</span>
+  <span id="tb-fuel" data-i18n-title="tbFuelTitle" title="Fuel — 6,750 t/parsec, full J-4 = 27,000 t">⛽ —</span>
+  <span id="tb-su" data-i18n-title="tbSuTitle" title="Supply Units — 1,000 SU/day (B3 p.46)">📦 —</span>
+  <span id="tb-crew" data-i18n-title="tbCrewTitle" title="ECEI = CEI+CEIM · morale (MOR) · fatigue (CFI)">👥 —</span>
+  <span class="spacer"></span>
+  <button id="btn-lang" class="tab-btn" title="Switch language / zmień język">PL</button>
+  <button id="btn-undo" class="tab-btn" data-i18n="undoBtn" data-i18n-title="undoTitle" title="Undo the last action (table mistake correction)">↩ undo</button>
+  <button id="btn-journal" class="tab-btn" data-i18n="journalBtn">Log</button>
+</div>
+
+<div id="init-screen" class="hidden">
+  <div class="panel">
+    <h2 data-i18n="initTitle">Campaign start</h2>
+    <p data-i18n-html="initP">Companion has no ship state yet (<code>state/ship.json</code>).</p>
+    <label><span data-i18n="initStart">Starting position:</span>
+      <select id="init-start">
+        <option value="giikur">Giikur Naval Base (Vland 0211)</option>
+        <option value="demnan">Point Demnan (Incognita Citerior 3124)</option>
+      </select>
+    </label>
+    <label><span data-i18n="initDate">Imperial date (DDD-YYYY):</span> <input id="init-date" value="001-1105"></label>
+    <label><span data-i18n="initMor">2D3 morale roll (MOR = CEI+2D3, B3 p.38) — empty = computer rolls:</span>
+      <input id="init-mor" data-i18n-placeholder="initMorPh" placeholder="e.g. 4"></label>
+    <button id="init-go" data-i18n="initGo">Begin</button>
+  </div>
+</div>
+
+<div id="main" class="hidden">
+  <div id="map-col">
+    <div id="map-head">
+      <select id="sec-select"></select>
+      <span id="sec-status" class="dim"></span>
+      <button id="btn-home" data-i18n="homeBtn" data-i18n-title="homeTitle" title="Return to ship position">to ship</button>
+    </div>
+    <div id="map-wrap">
+      <svg id="hexmap" preserveAspectRatio="xMidYMid meet"></svg>
+      <button class="nav-arrow" id="nav-left" title=""><span class="glyph">◀</span><span class="nav-name"></span></button>
+      <button class="nav-arrow" id="nav-right" title=""><span class="glyph">▶</span><span class="nav-name"></span></button>
+      <button class="nav-arrow" id="nav-up" title=""><span class="glyph">▲</span><span class="nav-name"></span></button>
+      <button class="nav-arrow" id="nav-down" title=""><span class="glyph">▼</span><span class="nav-name"></span></button>
+      <div id="tooltip" class="hidden"></div>
+    </div>
+  </div>
+
+  <div id="side-col">
+    <div id="ship-panel" class="panel">
+      <h3 data-i18n-html="shipPanelH">Ship <span class="dim">(click a stat to edit)</span></h3>
+      <div id="stats-grid"></div>
+      <div id="defects-box"></div>
+      <div id="ship-actions"></div>
+      <div id="ship-result" class="dim"></div>
+    </div>
+    <div id="hex-panel" class="panel">
+      <h3 id="hex-title" data-i18n="pickHex">Select a hex</h3>
+      <div id="hex-desc"></div>
+      <div id="hex-bodies"></div>
+      <div id="hex-detail"></div>
+      <div id="hex-actions"></div>
+      <div id="action-result" class="dim"></div>
+    </div>
+  </div>
+</div>
+
+<div id="journal-screen" class="hidden">
+  <div class="panel">
+    <h2><span data-i18n="journalTitle">Ship's log</span> <button id="journal-close" class="tab-btn" data-i18n="journalClose">← map</button></h2>
+    <div id="journal-list"></div>
+    <div class="journal-add">
+      <input id="note-author" data-i18n-placeholder="noteAuthorPh" placeholder="author / character">
+      <input id="note-text" data-i18n-placeholder="noteTextPh" placeholder="log entry...">
+      <button id="note-add" data-i18n="noteAdd">Add entry</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlg-title"></h3>
+  <div class="dlg-body" id="dlg-body"></div>
+  <div id="dlg-fields"></div>
+  <div class="dlg-actions">
+    <button id="dlg-cancel" type="button" data-i18n="cancel">Cancel</button>
+    <button id="dlg-ok" type="button" class="primary">OK</button>
+  </div>
+</dialog>
+
+<div id="jump-overlay">
+  <div class="streaks"></div>
+  <div class="jump-text" data-i18n="jumpText">Jumpspace — 7 days</div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+[project]
+name = "deepnight-companion"
+version = "0.1.0"
+description = "Players' navigation companion for the Traveller: Deepnight Revelation campaign (Mongoose Traveller 2e) — sensors, fuel, jumps and survey data on a hex map"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "pydantic>=2.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# campaign state and secrets (created at first run)
+state/
+gm_token.txt
+companion/gm_token.txt
+
+# raw source data from travellermap (regenerable via scripts/fetch_map_data.py)
+companion/data/sectors/raw/
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+
+.DS_Store
+Thumbs.db
