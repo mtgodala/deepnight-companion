@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="85%">
+      <stop offset="0%" stop-color="#1a2a4d"/>
+      <stop offset="55%" stop-color="#0c111d"/>
+      <stop offset="100%" stop-color="#05070d"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+
+  <!-- hex survey (jak na mapie) -->
+  <polygon points="128,30 213,79 213,177 128,226 43,177 43,79"
+           fill="none" stroke="#2c3a5c" stroke-width="6" opacity=".9"/>
+
+  <!-- gwiazdy Szczeliny -->
+  <circle cx="72" cy="76" r="3.6" fill="#93a2c4" opacity=".75"/>
+  <circle cx="198" cy="152" r="3" fill="#ff8a6b" opacity=".9"/>
+  <circle cx="96" cy="190" r="2.4" fill="#93a2c4" opacity=".5"/>
+  <!-- żółta gwiazda z halo -->
+  <circle cx="176" cy="66" r="19" fill="#ffe28a" opacity=".16"/>
+  <circle cx="176" cy="66" r="11" fill="#ffe28a" opacity=".3"/>
+  <circle cx="176" cy="66" r="7" fill="#ffe28a"/>
+
+  <!-- trasa statku -->
+  <line x1="54" y1="210" x2="97" y2="167" stroke="#57d98b" stroke-width="4.5"
+        stroke-dasharray="10 9" stroke-linecap="round" opacity=".6"/>
+
+  <!-- poświata za statkiem -->
+  <circle cx="130" cy="134" r="52" fill="#57d98b" opacity=".08"/>
+  <circle cx="130" cy="134" r="34" fill="#57d98b" opacity=".08"/>
+
+  <!-- RSS Deepnight Revelation (glif z mapy) -->
+  <g transform="translate(130,134) rotate(45) scale(7.6)">
+    <path d="M0,-8 C1.8,-5 2.2,-1 2.2,3 L4.8,6 L1.6,5.2 C0.9,6.6 -0.9,6.6 -1.6,5.2 L-4.8,6 L-2.2,3 C-2.2,-1 -1.8,-5 0,-8 Z"
+          fill="#57d98b" stroke="#05070d" stroke-width=".4"/>
+    <circle cx="0" cy="6.1" r=".95" fill="#8fc4f0"/>
+  </g>
+</svg>
