@@ -147,6 +147,19 @@ const PL = {
   hereBadge: "◉ POZYCJA STATKU",
   targetBadge: (d) => `cel · ${d} pc od statku`,
   siRow: `Survey Index (SI)`, uwpRow: `UWP <span class="dim">(zapis techniczny)</span>`,
+  /* siatka UWP + chipy (wzór: karta świata w appkach travellermapowych) */
+  GRID: { port: "Port kosmiczny", size: "Rozmiar", atmo: "Atmosfera", hydro: "Hydrografia",
+    pop: "Populacja", gov: "Rząd", law: "Prawo", tl: "Poziom techniki" },
+  PORT_SHORT: { A: "klasa A — doskonały", B: "klasa B — dobry", C: "klasa C — przeciętny",
+    D: "klasa D — ubogi", E: "klasa E — lądowisko", X: "brak portu" },
+  mainworldHdr: "Główny świat",
+  uwpEstimateChip: "szacunek sensorów",
+  lawVal: (n) => `${n}/9`, tlVal: (n) => `TL ${n}`, hydroVal: (pct) => `~${pct}% wody`,
+  popNone: "niezamieszkany",
+  siChipTip: "Survey Index — ile wiecie o tym systemie (B3 p.71)",
+  chipGG: "⛽ gazowy olbrzym", chipGGno: "brak gazowego olbrzyma",
+  chipHab: "🌍 świat zdatny do życia", chipBorder: "🌗 świat graniczny",
+  chipAmber: "⚠ strefa AMBER", chipRed: "⛔ strefa RED", chipEmpty: "pusty hex",
   jumpBtn: (d) => `Skok (jump) — ${d} pc`,
   jumpRule: (t, can) => `${t} t paliwa · ~7 dni${can ? "" : " · za mało paliwa"}`,
   courseBtn: (d, j) => `Kurs na cel — ${d} pc (~${j} skoków)`,
@@ -303,6 +316,18 @@ const EN = {
   hereBadge: "◉ SHIP POSITION",
   targetBadge: (d) => `target · ${d} pc from ship`,
   siRow: `Survey Index (SI)`, uwpRow: `UWP <span class="dim">(technical notation)</span>`,
+  GRID: { port: "Starport", size: "Size", atmo: "Atmosphere", hydro: "Hydrographics",
+    pop: "Population", gov: "Government", law: "Law level", tl: "Tech level" },
+  PORT_SHORT: { A: "class A — excellent", B: "class B — good", C: "class C — routine",
+    D: "class D — poor", E: "class E — frontier", X: "no starport" },
+  mainworldHdr: "Mainworld",
+  uwpEstimateChip: "sensor estimate",
+  lawVal: (n) => `${n}/9`, tlVal: (n) => `TL ${n}`, hydroVal: (pct) => `~${pct}% water`,
+  popNone: "uninhabited",
+  siChipTip: "Survey Index — how much you know about this system (B3 p.71)",
+  chipGG: "⛽ gas giant", chipGGno: "no gas giant",
+  chipHab: "🌍 habitable world", chipBorder: "🌗 borderline habitable",
+  chipAmber: "⚠ AMBER zone", chipRed: "⛔ RED zone", chipEmpty: "empty hex",
   jumpBtn: (d) => `Jump — ${d} pc`,
   jumpRule: (t, can) => `${t} t of fuel · ~7 days${can ? "" : " · not enough fuel"}`,
   courseBtn: (d, j) => `Set course — ${d} pc (~${j} jumps)`,
@@ -461,22 +486,46 @@ const showInfo = (title, body) => showDialog({ title, body, okLabel: LANG === "e
 
 const hexVal = (ch) => parseInt(ch, 18);
 
-function decodeUWP(uwp) {
-  if (!uwp || uwp.length < 8) return null;
-  const [port, size, atmo, hydro, pop, gov, law] = uwp;
-  const tl = uwp.split("-")[1] || "?";
-  const out = [];
-  out.push(T.STARPORT[port] || T.uwpPort(`port ${port}`));
-  out.push(T.uwpWorld(T.SIZE[hexVal(size)] || T.uwpSize(size)));
-  out.push(T.uwpAtmo(T.ATMO[hexVal(atmo)] || atmo));
-  out.push(T.uwpHydro(hexVal(hydro) * 10));
-  const p = hexVal(pop);
-  if (p === 0) out.push(T.uwpNoPop);
-  else {
-    out.push(T.uwpPop(num(10 ** p), T.GOV[hexVal(gov)] || T.uwpGov(gov), hexVal(law)));
-    out.push(T.uwpTL(parseInt(tl, 18)));
-  }
-  return out;
+/* siatka label/value dekodująca UWP — pola ponad progiem SI pokazują "—" */
+function renderUwpGrid(view) {
+  const el = $("hex-uwp");
+  const raw = view.mainworld_uwp || view.uwp_partial || view.uwp_estimate;
+  if (!raw || view.empty) { el.innerHTML = ""; return; }
+  const code = raw.replace(/\s*\(.*\)\s*$/, "");   // uwp_estimate ma dopisek "(szacunek)"
+  const [port, size, atmo, hydro, pop, gov, law] = code;
+  const tlRaw = (code.split("-")[1] || "").trim();
+  const V = (ch, fn) => (!ch || ch === "?" ? "—" : fn(ch));
+  const p = pop && pop !== "?" ? hexVal(pop) : null;
+  const rows = [
+    [T.GRID.port, V(port, (c) => T.PORT_SHORT[c] || c)],
+    [T.GRID.size, V(size, (c) => T.SIZE[hexVal(c)] || c)],
+    [T.GRID.atmo, V(atmo, (c) => T.ATMO[hexVal(c)] || c)],
+    [T.GRID.hydro, V(hydro, (c) => T.hydroVal(hexVal(c) * 10))],
+    [T.GRID.pop, p === null ? "—" : (p === 0 ? T.popNone : num(10 ** p))],
+    [T.GRID.gov, p === 0 ? "—" : V(gov, (c) => T.GOV[hexVal(c)] || c)],
+    [T.GRID.law, p === 0 ? "—" : V(law, (c) => T.lawVal(hexVal(c)))],
+    [T.GRID.tl, p === 0 ? "—" : (tlRaw && tlRaw !== "?" ? T.tlVal(parseInt(tlRaw, 18)) : "—")],
+  ];
+  const est = view.uwp_estimate ? ` <span class="chip chip-dim">${T.uwpEstimateChip}</span>` : "";
+  el.innerHTML =
+    `<div class="uwp-head">${T.mainworldHdr}${view.name ? " — " + view.name : ""} <code>${code}</code>${est}</div>` +
+    `<div class="uwp-grid">` + rows.map(([l, v]) =>
+      `<div class="uwp-cell"><span class="uwp-lbl">${l}</span><span class="uwp-val">${v}</span></div>`).join("") +
+    `</div>`;
+}
+
+/* chipy statusów systemu — fakty widoczne od razu, bez czytania prozy */
+function renderChips(view) {
+  const chips = [`<span class="chip chip-si" title="${T.siChipTip}">SI ${view.si}/12</span>`];
+  if (view.empty) chips.push(`<span class="chip chip-dim">${T.chipEmpty}</span>`);
+  if (view.gas_giant === true) chips.push(`<span class="chip chip-ok">${T.chipGG}</span>`);
+  else if (view.gas_giant === false) chips.push(`<span class="chip chip-dim">${T.chipGGno}</span>`);
+  if (view.habitable) chips.push(`<span class="chip chip-ok">${T.chipHab}</span>`);
+  else if (view.borderline_habitable) chips.push(`<span class="chip chip-warn">${T.chipBorder}</span>`);
+  if (view.bases && T.BASES[view.bases]) chips.push(`<span class="chip chip-info">${T.BASES[view.bases]}</span>`);
+  if (view.zone === "A") chips.push(`<span class="chip chip-warn">${T.chipAmber}</span>`);
+  if (view.zone === "R") chips.push(`<span class="chip chip-bad">${T.chipRed}</span>`);
+  $("hex-chips").innerHTML = chips.join("");
 }
 
 function decodeStar(s) {
@@ -507,18 +556,7 @@ function describeSystem(v) {
   } else if (v.star_presence) {
     p.push(T.starPresence);
   }
-  if (v.gas_giant === true && !v.bodies_detail) p.push(T.ggYes);
-  else if (v.gas_giant === false) p.push(T.ggNo);
-  if (v.habitable) p.push(T.habitable);
-  else if (v.borderline_habitable) p.push(T.borderline);
-  const uwp = v.mainworld_uwp || null;
-  if (uwp) {
-    const d = decodeUWP(uwp);
-    if (d) p.push(T.mainworld(v.name) + d.join("; ") + ".");
-  }
-  if (v.bases && T.BASES[v.bases]) p.push(T.onSite(T.BASES[v.bases]));
-  if (v.zone === "A") p.push(T.amber);
-  if (v.zone === "R") p.push(T.red);
+  /* GG / habitable / bazy / strefy / UWP przeniesione do chipów i siatki UWP */
   if (!p.length) p.push(T.noData);
   return p;
 }
@@ -1078,12 +1116,11 @@ async function selectHex(hex) {
   const badge = here ? `<span class="here-badge">${T.hereBadge}</span>`
                      : `<span class="target-badge">${T.targetBadge(d)}</span>`;
   $("hex-title").innerHTML = `${CUR_SECTOR} ${hex}` + (view.name ? ` — ${view.name}` : "") + " " + badge;
+  renderChips(view);
   $("hex-desc").innerHTML = describeSystem(view).map((s) => `<p>${s}</p>`).join("");
+  renderUwpGrid(view);
   renderBodies(view);
-  const t = [];
-  t.push(`<tr><td>${T.siRow}</td><td>${view.si} / 12 <span class="dim">(B3 p.71)</span></td></tr>`);
-  if (view.mainworld_uwp) t.push(`<tr><td>${T.uwpRow}</td><td><code>${view.mainworld_uwp}</code></td></tr>`);
-  $("hex-detail").innerHTML = `<table>${t.join("")}</table>`;
+  $("hex-detail").innerHTML = "";
   renderActions(hex, view, here, d);
 }
 
