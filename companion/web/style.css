@@ -1,6 +1,49 @@
 /* Deepnight Companion — design system (refactoring-ui: skale, nie intuicja)
    Spacing: 4/8/16/24/32 · Typo: 11/12/13/16/20 · Szarości barwione na niebiesko
-   Dark mode: elevation przez JASNOŚĆ powierzchni, nie cień. */
+   Dark mode: elevation przez JASNOŚĆ powierzchni, nie cień.
+   Etap 5: typografia własna (Exo 2 + IBM Plex Mono, self-hosted),
+   motywy [data-theme] i akcenty [data-accent] na <html>. */
+
+@font-face {
+  font-family: "Exo 2"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/Exo2-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Exo 2"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/Exo2-600-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Exo 2"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/Exo2-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Exo 2"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/Exo2-700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/IBMPlexMono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/IBMPlexMono-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/IBMPlexMono-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/IBMPlexMono-600-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 :root {
   /* skala szarości (tint niebieski ~222°) */
@@ -30,7 +73,60 @@
   --star-X: #c8d4ea; --star-NS: #c79bff; --star-WD: #e8ecf5;
 
   --radius: 6px;
+  --font-display: "Exo 2", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Cascadia Mono", ui-monospace, monospace;
+  --map-star: #cfe0ff;          /* punkciki starfieldu (dekoracja) */
+  --shadow-panel: 0 12px 40px rgba(0, 0, 0, .45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, .6);
 }
+
+/* motyw "paper chart" — kremowy papier, atramentowe hexy (trade dress map z książki).
+   Fog-of-war odwzorowany na atrament: im więcej wiecie, tym ciemniejszy wash. */
+[data-theme="paper"] {
+  --g-950: #f0e7d3;   /* mapa: papier */
+  --g-900: #e9deca;   /* tło strony */
+  --g-850: #f7f0df;   /* panele */
+  --g-800: #ece1c8;   /* chipy, inputy */
+  --g-750: #e2d5b6;   /* hover */
+  --g-700: #cfc0a0;   /* bordery */
+  --g-600: #a8946e;   /* bordery mocniejsze */
+  --g-500: #8a795a;   /* tekst trzeciorzędny */
+  --g-400: #675838;   /* tekst drugorzędny */
+  --g-200: #3a3020;   /* tekst podstawowy */
+  --g-100: #241c0e;   /* nagłówki */
+  --accent: #1f5f96;
+  --accent-strong: #174a77;
+  --ok: #1e7a4a;
+  --warn: #a05f00;
+  --bad: #b3261e;
+  --canon: #8a6d1a;
+  --star-M: #c04020; --star-K: #b06810; --star-G: #9c8500;
+  --star-F: #82823a; --star-A: #4a4a4a; --star-B: #2c5f9e;
+  --star-X: #6b5c40; --star-NS: #7a3fa0; --star-WD: #6d6d6d;
+  --map-star: transparent;
+  --shadow-panel: 0 8px 24px rgba(90, 70, 30, .16);
+  --shadow-dialog: 0 16px 48px rgba(90, 70, 30, .3);
+}
+[data-theme="paper"] .starfield, [data-theme="paper"] .neb { display: none; }
+[data-theme="paper"] .hex { stroke: #d9ccae; }
+[data-theme="paper"] .hex.si-1 { fill: #ebe0c8; } [data-theme="paper"] .hex.si-2 { fill: #e8dcc1; }
+[data-theme="paper"] .hex.si-3 { fill: #e5d8ba; } [data-theme="paper"] .hex.si-4 { fill: #e2d4b3; }
+[data-theme="paper"] .hex.si-5 { fill: #dfd0ac; } [data-theme="paper"] .hex.si-6 { fill: #dccca5; }
+[data-theme="paper"] .hex.si-7 { fill: #d9c89e; } [data-theme="paper"] .hex.si-8 { fill: #d6c497; }
+[data-theme="paper"] .hex.si-9 { fill: #d3c090; } [data-theme="paper"] .hex.si-10,
+[data-theme="paper"] .hex.si-11, [data-theme="paper"] .hex.si-12 { fill: #cfba86; }
+[data-theme="paper"] dialog::backdrop { background: rgba(70, 55, 25, .4); }
+[data-theme="paper"] #jump-overlay { background: radial-gradient(ellipse at center, #efe5cf 0%, #d8c9a4 65%); }
+[data-theme="paper"] #jump-overlay .jump-text { color: var(--g-100); text-shadow: none; }
+[data-theme="paper"] #jump-overlay .streaks {
+  background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(60, 45, 15, .1) 46px 48px);
+}
+
+/* akcenty — po motywach, żeby wygrywały kolejnością */
+[data-accent="green"] { --accent: #43d69a; --accent-strong: #18b374; }
+[data-accent="amber"] { --accent: #ffbe5c; --accent-strong: #f09c1e; }
+[data-theme="paper"][data-accent="green"] { --accent: #157a52; --accent-strong: #0f5f3f; }
+[data-theme="paper"][data-accent="amber"] { --accent: #a5670a; --accent-strong: #855205; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
@@ -51,11 +147,25 @@ code { color: var(--warn); font-size: 12px; }
 }
 .brand {
   color: var(--g-100); font-weight: 700; letter-spacing: 2px; font-size: 12px;
+  font-family: var(--font-display);
 }
 .brand::before { content: "◆ "; color: var(--accent); }
 #topbar span { white-space: nowrap; color: var(--g-400); }
 #topbar span b, #topbar .val { color: var(--g-200); }
 .spacer { flex: 1; }
+/* wartości topbaru = "panel instrumentów": mono */
+#tb-date, #tb-pos, #tb-fuel, #tb-su, #tb-crew { font-family: var(--font-mono); font-size: 11.5px; }
+#btn-accent { color: var(--accent); font-weight: 700; }
+
+/* ------------------------------ ikony SVG ------------------------------- */
+.ico {
+  width: 14px; height: 14px; display: inline-block; vertical-align: -2.5px;
+  stroke: currentColor; fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; flex: none;
+}
+.chip .ico, .rule .ico { width: 11px; height: 11px; vertical-align: -1.5px; stroke-width: 2.2; }
+.tab-btn .ico { vertical-align: -2px; }
+button .ico { margin-right: 2px; }
 
 /* ------------------------------ przyciski ------------------------------- */
 button {
@@ -88,12 +198,30 @@ button.primary .rule { color: #cfe2ff; }
 #map-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 #map-head { display: flex; gap: 8px; align-items: center; padding: 8px 16px; }
 #map-head select {
-  background: var(--g-800); color: var(--g-200);
+  background-color: var(--g-800); color: var(--g-200);
   border: 1px solid var(--g-700); border-radius: var(--radius); padding: 6px 8px;
+}
+/* selecty custom: bez wyglądu OS, własny chevron */
+select {
+  appearance: none; -webkit-appearance: none;
+  padding-right: 26px !important; font: inherit; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393a2c4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; background-size: 12px;
+}
+[data-theme="paper"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23675838' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 #map-wrap {
   flex: 1; position: relative; overflow: hidden; background: var(--g-950);
   user-select: none; -webkit-user-select: none;   /* klik-przeciągnięcie nie zaznacza numerów hexów */
+}
+/* winieta: głębia bez zasłaniania interakcji */
+#map-wrap::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse 108% 108% at 50% 46%, transparent 62%, rgba(0, 0, 0, .38) 100%);
+}
+[data-theme="paper"] #map-wrap::after {
+  background: radial-gradient(ellipse 110% 110% at 50% 46%, transparent 68%, rgba(85, 65, 25, .18) 100%);
 }
 #hexmap { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 #hexmap:active { cursor: grabbing; }
@@ -109,12 +237,13 @@ button.primary .rule { color: #cfe2ff; }
   padding: 16px; margin: 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--g-700));
   border-radius: var(--radius);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+  box-shadow: var(--shadow-panel);
 }
 /* nagłówki paneli: małe, uppercase, tracking — etykieta, nie krzyk */
 .panel h2, .panel h3 {
   margin: 0 0 8px; color: var(--accent); font-size: 12px;
   text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+  font-family: var(--font-display);
 }
 .panel h3 .dim { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .panel label { display: block; margin: 16px 0 8px; color: var(--g-400); font-size: 12px; }
@@ -136,7 +265,7 @@ button.primary .rule { color: #cfe2ff; }
 .sys-name { font-style: italic; letter-spacing: .4px; }
 /* liczby nie "skaczą" przy odświeżaniu, kody UWP wyraźnie techniczne */
 code, .stat .val, #tb-date, #tb-pos, #tb-fuel, #tb-su { font-variant-numeric: tabular-nums; }
-code { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
+code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font-mono); }
 /* badge w panelu: hex statku vs cel — żeby nie skanować "nie wiadomo czego" */
 .here-badge, .target-badge {
   display: inline-block; vertical-align: 1px; margin-left: 4px;
@@ -222,6 +351,7 @@ code { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
 #hex-bodies h4 {
   margin: 16px 0 4px; color: var(--accent); font-size: 11px;
   text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
+  font-family: var(--font-display);
 }
 .zone { margin: 8px 0 0; }
 .zone-name {
@@ -267,6 +397,14 @@ code { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
   font-size: calc(5px * var(--gs)); fill: var(--canon);
   paint-order: stroke; stroke: var(--g-950); stroke-width: .8px;
 }
+/* siatka subsektorów 4×4 — litery A-P jak na kartach sektora */
+.subsec-line { stroke: var(--canon); stroke-width: .5; opacity: .12; pointer-events: none; }
+.subsec-label {
+  fill: var(--canon); opacity: .14; pointer-events: none;
+  font: italic 600 13px Georgia, "Times New Roman", serif; letter-spacing: 1px;
+}
+[data-theme="paper"] .subsec-line { opacity: .2; }
+[data-theme="paper"] .subsec-label { opacity: .25; }
 
 /* "radar sweep" na hexie w trakcie skanu */
 .scan-ping { fill: none; stroke: var(--accent); pointer-events: none; animation: scanping 1.1s ease-out infinite; }
@@ -290,8 +428,10 @@ code { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; }
 .world-name {
   fill: var(--canon); font-size: 6px; pointer-events: none; text-anchor: middle;
   paint-order: stroke; stroke: var(--g-950); stroke-width: 1.6px; font-weight: 600;
-  letter-spacing: .5px;
+  letter-spacing: .5px; font-family: var(--font-display);
 }
+.hex-label { font-family: var(--font-mono); }
+.starfield { pointer-events: none; }
 .trail-seg { fill: none; stroke: var(--ok); stroke-dasharray: 3 3; pointer-events: none;
   animation: trailflow 1.6s linear infinite; }
 @keyframes trailflow { to { stroke-dashoffset: -6; } }
@@ -372,12 +512,13 @@ dialog {
   background: var(--g-850); color: var(--g-200);
   border: 1px solid var(--g-600); border-radius: 8px;
   padding: 24px; min-width: 360px; max-width: 440px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+  box-shadow: var(--shadow-dialog);
 }
+dialog[open] { animation: rise .2s ease; }
 dialog::backdrop { background: rgba(4, 6, 12, .7); }
 dialog h3 {
   margin: 0 0 8px; color: var(--accent); font-size: 12px;
-  text-transform: uppercase; letter-spacing: 2px;
+  text-transform: uppercase; letter-spacing: 2px; font-family: var(--font-display);
 }
 dialog .dlg-body { font-size: 13px; color: var(--g-400); margin-bottom: 8px; }
 dialog label { display: block; margin: 16px 0 4px; font-size: 12px; color: var(--g-400); }
@@ -399,7 +540,7 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
 }
 #jump-overlay .jump-text {
   color: var(--g-100); font-size: 20px; letter-spacing: 6px; text-transform: uppercase;
-  text-shadow: 0 0 24px var(--accent);
+  text-shadow: 0 0 24px var(--accent); font-family: var(--font-display); font-weight: 600;
 }
 #jump-overlay .streaks {
   position: absolute; inset: 0;
@@ -413,8 +554,29 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
   to { transform: scaleX(3.5); opacity: 0; }
 }
 
+/* ------------------------ motion między widokami ------------------------ */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+#journal-screen .panel, #rolls-panel { animation: rise .22s ease; }
+/* fade zawartości karty hexu po zmianie zaznaczenia (retrigger w selectHex) */
+#hex-panel.fade-swap #hex-chips, #hex-panel.fade-swap #hex-desc,
+#hex-panel.fade-swap #hex-uwp, #hex-panel.fade-swap #hex-bodies,
+#hex-panel.fade-swap #hex-actions { animation: rise .18s ease; }
+/* skeleton na czas requestu karty hexu */
+@keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skel {
+  height: 12px; border-radius: 4px; margin: 10px 0;
+  background: linear-gradient(90deg, var(--g-800) 30%, var(--g-750) 50%, var(--g-800) 70%);
+  background-size: 200% 100%; animation: skel 1.1s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .trail-seg, .ship-glyph .engine, .ship-ring, .ns-pulse, #jump-overlay.play, #jump-overlay .streaks {
+  .trail-seg, .ship-glyph .engine, .ship-ring, .ns-pulse, #jump-overlay.play, #jump-overlay .streaks,
+  .scan-ping, .skel, dialog[open], #journal-screen .panel, #rolls-panel,
+  #hex-panel.fade-swap #hex-chips, #hex-panel.fade-swap #hex-desc, #hex-panel.fade-swap #hex-uwp,
+  #hex-panel.fade-swap #hex-bodies, #hex-panel.fade-swap #hex-actions {
     animation: none !important;
   }
 }

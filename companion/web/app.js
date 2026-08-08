@@ -23,6 +23,10 @@ const ROLLS = [];          // historia rzutów tej sesji przeglądarki (max 20)
 const SEC_CACHE = {};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ikony SVG (sprite w index.html) — spójny zestaw zamiast emoji */
+const ico = (n) => `<svg class="ico" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const ICO_WARN = ico("warn"), ICO_BAD = ico("ban"), ICO_DICE = ico("dice");
+
 /* ================================ i18n ================================== */
 
 const LANG = localStorage.getItem("dn-lang") === "pl" ? "pl" : "en";   // default: EN
@@ -32,7 +36,8 @@ const num = (n) => n.toLocaleString(LOCALE);
 const PL = {
   /* statyczne elementy index.html */
   static: {
-    undoBtn: "↩ cofnij", journalBtn: "Dziennik",
+    undoBtn: "cofnij", journalBtn: "Dziennik",
+    themeTip: "Motyw: ciemny / mapa papierowa", accentTip: "Kolor akcentu",
     undoTitle: "Cofnij ostatnią akcję (korekta pomyłki przy stole)",
     tbDateTitle: "Data imperialna (Imperial date)",
     tbFuelTitle: "Paliwo (fuel) — 6 750 t/parsek, pełny J-4 = 27 000 t",
@@ -83,7 +88,7 @@ const PL = {
     G: "żółta gwiazda (typ słoneczny)", F: "żółto-biała gwiazda",
     A: "biała gwiazda", B: "niebiesko-biała gwiazda", O: "błękitny olbrzym" },
   starWD: "biały karzeł", starRG: "czerwony olbrzym", starBD: "brązowy karzeł",
-  starNS: "gwiazda neutronowa ⚠", starBH: "czarna dziura ⚠",
+  starNS: `gwiazda neutronowa ${ICO_WARN}`, starBH: `czarna dziura ${ICO_WARN}`,
   BASES: { N: "baza Marynarki (naval base)", S: "baza Skautów (scout base)",
     NS: "bazy Marynarki i Skautów", W: "way station" },
   /* opis systemu */
@@ -112,7 +117,7 @@ const PL = {
   /* check / wynik */
   checkOk: "sukces", checkFail: "porażka",
   /* tooltip mapy */
-  tipStar: "gwiazda", tipGG: "gazowy olbrzym ✓",
+  tipStar: "gwiazda", tipGG: "gazowy olbrzym",
   /* topbar */
   missionDay: (d) => `dzień misji ${d}`, daysWord: "dni", pcWord: "pc",
   /* panel statku */
@@ -162,9 +167,9 @@ const PL = {
   lawVal: (n) => `${n}/9`, tlVal: (n) => `TL ${n}`, hydroVal: (pct) => `~${pct}% wody`,
   popNone: "niezamieszkany",
   siChipTip: "Survey Index — ile wiecie o tym systemie (B3 p.71)",
-  chipGG: "⛽ gazowy olbrzym", chipGGno: "brak gazowego olbrzyma",
-  chipHab: "🌍 świat zdatny do życia", chipBorder: "🌗 świat graniczny",
-  chipAmber: "⚠ strefa AMBER", chipRed: "⛔ strefa RED", chipEmpty: "pusty hex",
+  chipGG: "gazowy olbrzym", chipGGno: "brak gazowego olbrzyma",
+  chipHab: "świat zdatny do życia", chipBorder: "świat graniczny",
+  chipAmber: "strefa AMBER", chipRed: "strefa RED", chipEmpty: "pusty hex",
   rangeHint: "zasięg stąd:",
   pinTip: "Przypnij hex (cel wyprawy)", unpinTip: "Odepnij hex",
   pinsPh: "★ piny", rollsEmpty: "Brak rzutów w tej sesji.",
@@ -172,13 +177,13 @@ const PL = {
   jumpRule: (t, can) => `${t} t paliwa · ~7 dni${can ? "" : " · za mało paliwa"}`,
   courseBtn: (d, j) => `Kurs na cel — ${d} pc (~${j} skoków)`,
   courseRule: (legD, sec, hex, can) => `wykonaj 1. odcinek: skok ${legD} pc do ${sec} ${hex}` +
-    `${can ? "" : " · za mało paliwa"} · ⚠ hex pośredni może być pusty — sprawdź paliwo`,
+    `${can ? "" : " · za mało paliwa"} · ${ICO_WARN} hex pośredni może być pusty — sprawdź paliwo`,
   outOfRange: (d) => `Cel ${d} pc — poza zasięgiem J-4; trasa wychodzi poza znane sektory.`,
   scanHintHere: "SKANY tego systemu — kośćmi rzuca silnik (B3 p.72-74):",
   scanHintRemote: (d) => `Statek jest gdzie indziej — z dystansu (${d} pc) działa tylko zdalny sweep (B3 p.72). Pełne skany wymagają skoku do tego systemu:`,
   actRemote: "Zdalny sweep", actRemoteRule: "check Average (8+) na DEI Mission · SI +2×Effect",
   actPassive: "Skan pasywny", actPassiveRule: "+1 SI · 2D min · nie zdradza pozycji",
-  actActive: "Skan aktywny ⚠", actActiveRule: "+D3 SI · 2D h · ujawnia statek nasłuchującym",
+  actActive: `Skan aktywny ${ICO_WARN}`, actActiveRule: "+D3 SI · 2D h · ujawnia statek nasłuchującym",
   actFull: "Pełny survey", actFullRule: "+1D SI · 4D h · wymaga manewrów",
   actShortrange: "Short-Range Detection", actShortrangeRule: "szukaj obiektów w pustce · 1D dni (B3 p.75)",
   actSkim: "Skimming — głębokie warstwy", actSkimRule: "750 t/pass · check DEI Flight z DM-2",
@@ -193,10 +198,10 @@ const PL = {
   jumpWord: "Skacz",
   courseDone: (pc, sec, hex, date) => `Odcinek kursu wykonany: ${pc} pc do ${sec} ${hex}. Data: ${date}`,
   jumpDone: (pc, fuel, date) => `Skok wykonany: ${pc} pc, -${fuel} t. Data: ${date}`,
-  scanGain: (g) => ` (🎲 przyrost: ${g})`, timeWord: "czas",
+  scanGain: (g) => ` (${ICO_DICE} przyrost: ${g})`, timeWord: "czas",
   noProgress: (best) => ` — bez postępu: liczy się tylko NAJWIĘKSZY pojedynczy przyrost (B3 p.73), a dotychczasowy najlepszy sweep dał +${best}. SI podniesie mocniejszy wynik albo pobyt w systemie (+1 co ~6 dni, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passów, +${t} t, przetwarzanie ${d} dnia`,
-  srMsg: (roll, near, days, found) => `🎲 2D+DM = ${roll} (najbliższa gwiazda ${near} pc) · sweep ${days} dni → ${found}`,
+  srMsg: (roll, near, days, found) => `${ICO_DICE} 2D+DM = ${roll} (najbliższa gwiazda ${near} pc) · sweep ${days} dni → ${found}`,
   srNothing: "nic nie znaleziono",
   /* dziennik */
   KIND: { init: "START", scan: "SKAN", jump: "SKOK", skim: "PALIWO",
@@ -213,7 +218,8 @@ const PL = {
 
 const EN = {
   static: {
-    undoBtn: "↩ undo", journalBtn: "Log",
+    undoBtn: "undo", journalBtn: "Log",
+    themeTip: "Theme: dark / paper chart", accentTip: "Accent colour",
     undoTitle: "Undo the last action (table mistake correction)",
     tbDateTitle: "Imperial date",
     tbFuelTitle: "Fuel — 6,750 t/parsec, full J-4 = 27,000 t",
@@ -263,7 +269,7 @@ const EN = {
     G: "yellow star (solar type)", F: "yellow-white star",
     A: "white star", B: "blue-white star", O: "blue giant" },
   starWD: "white dwarf", starRG: "red giant", starBD: "brown dwarf",
-  starNS: "neutron star ⚠", starBH: "black hole ⚠",
+  starNS: `neutron star ${ICO_WARN}`, starBH: `black hole ${ICO_WARN}`,
   BASES: { N: "Naval base", S: "Scout base",
     NS: "Naval and Scout bases", W: "way station" },
   emptyHex: "The void of the Great Rift — there is no star in this hex. Jumping here means a week in total blackness; lone comets are the only hope for fuel (Short-Range Detection, B3 p.75).",
@@ -288,7 +294,7 @@ const EN = {
     "zewnętrzna": "outer", "daleka": "far outer" },
   trBody: (s) => EN_BODY[s] || s, trNote: (s) => EN_NOTE[s] || s,
   checkOk: "success", checkFail: "failure",
-  tipStar: "star", tipGG: "gas giant ✓",
+  tipStar: "star", tipGG: "gas giant",
   missionDay: (d) => `mission day ${d}`, daysWord: "days", pcWord: "pc",
   STATS: {
     "cei": ["CEI", "Crew Efficiency Index 0-15 — crew training (B3 p.32)"],
@@ -334,9 +340,9 @@ const EN = {
   lawVal: (n) => `${n}/9`, tlVal: (n) => `TL ${n}`, hydroVal: (pct) => `~${pct}% water`,
   popNone: "uninhabited",
   siChipTip: "Survey Index — how much you know about this system (B3 p.71)",
-  chipGG: "⛽ gas giant", chipGGno: "no gas giant",
-  chipHab: "🌍 habitable world", chipBorder: "🌗 borderline habitable",
-  chipAmber: "⚠ AMBER zone", chipRed: "⛔ RED zone", chipEmpty: "empty hex",
+  chipGG: "gas giant", chipGGno: "no gas giant",
+  chipHab: "habitable world", chipBorder: "borderline habitable",
+  chipAmber: "AMBER zone", chipRed: "RED zone", chipEmpty: "empty hex",
   rangeHint: "range from here:",
   pinTip: "Pin this hex (expedition target)", unpinTip: "Unpin this hex",
   pinsPh: "★ pins", rollsEmpty: "No rolls this session.",
@@ -344,13 +350,13 @@ const EN = {
   jumpRule: (t, can) => `${t} t of fuel · ~7 days${can ? "" : " · not enough fuel"}`,
   courseBtn: (d, j) => `Set course — ${d} pc (~${j} jumps)`,
   courseRule: (legD, sec, hex, can) => `execute leg 1: jump ${legD} pc to ${sec} ${hex}` +
-    `${can ? "" : " · not enough fuel"} · ⚠ the intermediate hex may be empty — watch your fuel`,
+    `${can ? "" : " · not enough fuel"} · ${ICO_WARN} the intermediate hex may be empty — watch your fuel`,
   outOfRange: (d) => `Target ${d} pc away — beyond J-4 range; the route leaves known sectors.`,
   scanHintHere: "SCANS of this system — the engine rolls the dice (B3 p.72-74):",
   scanHintRemote: (d) => `The ship is elsewhere — at range (${d} pc) only a remote sweep works (B3 p.72). Full scans require jumping to this system:`,
   actRemote: "Remote sweep", actRemoteRule: "Average (8+) check on DEI Mission · SI +2×Effect",
   actPassive: "Passive scan", actPassiveRule: "+1 SI · 2D min · does not reveal position",
-  actActive: "Active scan ⚠", actActiveRule: "+D3 SI · 2D h · reveals the ship to listeners",
+  actActive: `Active scan ${ICO_WARN}`, actActiveRule: "+D3 SI · 2D h · reveals the ship to listeners",
   actFull: "Full survey", actFullRule: "+1D SI · 4D h · requires manoeuvring",
   actShortrange: "Short-Range Detection", actShortrangeRule: "search the void for objects · 1D days (B3 p.75)",
   actSkim: "Skimming — deep layers", actSkimRule: "750 t/pass · DEI Flight check at DM-2",
@@ -365,10 +371,10 @@ const EN = {
   jumpWord: "Jump",
   courseDone: (pc, sec, hex, date) => `Course leg executed: ${pc} pc to ${sec} ${hex}. Date: ${date}`,
   jumpDone: (pc, fuel, date) => `Jump executed: ${pc} pc, -${fuel} t. Date: ${date}`,
-  scanGain: (g) => ` (🎲 gain: ${g})`, timeWord: "time",
+  scanGain: (g) => ` (${ICO_DICE} gain: ${g})`, timeWord: "time",
   noProgress: (best) => ` — no progress: only the LARGEST single increase counts (B3 p.73), and the best sweep so far gave +${best}. SI will rise from a stronger result or from dwelling in-system (+1 per ~6 days, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passes, +${t} t, processing ${d} days`,
-  srMsg: (roll, near, days, found) => `🎲 2D+DM = ${roll} (nearest star ${near} pc) · sweep ${days} days → ${found}`,
+  srMsg: (roll, near, days, found) => `${ICO_DICE} 2D+DM = ${roll} (nearest star ${near} pc) · sweep ${days} days → ${found}`,
   srNothing: "nothing found",
   KIND: { init: "START", scan: "SCAN", jump: "JUMP", skim: "FUEL",
     wait: "HOLD", note: "NOTE", undo: "UNDO", edit: "EDIT", shortrange: "SWEEP" },
@@ -455,6 +461,19 @@ function applyStaticI18n() {
     localStorage.setItem("dn-lang", LANG === "en" ? "pl" : "en");
     location.reload();
   });
+  /* motyw ciemny/papierowy + kolor akcentu (dn-theme / dn-accent) */
+  $("btn-theme").addEventListener("click", () => {
+    const t = document.documentElement.dataset.theme === "paper" ? "dark" : "paper";
+    document.documentElement.dataset.theme = t;
+    localStorage.setItem("dn-theme", t);
+  });
+  const ACCENTS = ["blue", "green", "amber"];
+  $("btn-accent").addEventListener("click", () => {
+    const cur = document.documentElement.dataset.accent || "blue";
+    const next = ACCENTS[(ACCENTS.indexOf(cur) + 1) % ACCENTS.length];
+    document.documentElement.dataset.accent = next;
+    localStorage.setItem("dn-accent", next);
+  });
 }
 
 /* ---------- dialogi (zamiast natywnych prompt/confirm/alert) ------------- */
@@ -530,13 +549,13 @@ function renderUwpGrid(view) {
 function renderChips(view, hex) {
   const chips = [`<span class="chip chip-si" title="${T.siChipTip}">SI ${view.si}/12</span>`];
   if (view.empty) chips.push(`<span class="chip chip-dim">${T.chipEmpty}</span>`);
-  if (view.gas_giant === true) chips.push(`<span class="chip chip-ok">${T.chipGG}</span>`);
+  if (view.gas_giant === true) chips.push(`<span class="chip chip-ok">${ico("gg")} ${T.chipGG}</span>`);
   else if (view.gas_giant === false) chips.push(`<span class="chip chip-dim">${T.chipGGno}</span>`);
-  if (view.habitable) chips.push(`<span class="chip chip-ok">${T.chipHab}</span>`);
-  else if (view.borderline_habitable) chips.push(`<span class="chip chip-warn">${T.chipBorder}</span>`);
+  if (view.habitable) chips.push(`<span class="chip chip-ok">${ico("globe")} ${T.chipHab}</span>`);
+  else if (view.borderline_habitable) chips.push(`<span class="chip chip-warn">${ico("half")} ${T.chipBorder}</span>`);
   if (view.bases && T.BASES[view.bases]) chips.push(`<span class="chip chip-info">${T.BASES[view.bases]}</span>`);
-  if (view.zone === "A") chips.push(`<span class="chip chip-warn">${T.chipAmber}</span>`);
-  if (view.zone === "R") chips.push(`<span class="chip chip-bad">${T.chipRed}</span>`);
+  if (view.zone === "A") chips.push(`<span class="chip chip-warn">${ICO_WARN} ${T.chipAmber}</span>`);
+  if (view.zone === "R") chips.push(`<span class="chip chip-bad">${ICO_BAD} ${T.chipRed}</span>`);
   /* planowanie: podświetl hexy w promieniu J1-J4 od TEGO hexu */
   const active = RANGE_SEL && RANGE_SEL.sector === CUR_SECTOR && RANGE_SEL.hex === hex ? RANGE_SEL.j : 0;
   chips.push(`<span class="chip chip-dim">${T.rangeHint}</span>`);
@@ -593,7 +612,7 @@ function renderBodies(v) {
       (v.si < 6 ? `<div class="dim">${T.bodiesUnknown}</div>` : "");
     return;
   }
-  const ICON = { gg: "🪐", belt: "☄", world: "🌑" };
+  const ICON = { gg: ico("gg"), belt: ico("belt"), world: ico("moon") };
   const zones = {};
   for (const b of v.bodies_detail) (zones[b.zone] ||= []).push(b);
   const html = [`<h4>${T.bodiesHeader}</h4>`];
@@ -613,7 +632,7 @@ function fmtCheck(c) {
   if (!c) return "";
   const dms = c.dms.map((d) => `${d.label} ${d.value >= 0 ? "+" : ""}${d.value}`).join(" · ");
   const res = c.success ? `<b class="ok">${T.checkOk}</b>` : `<b class="warn">${T.checkFail}</b>`;
-  return `<div class="check">🎲 <b>${c.label}</b>: [${c.dice.join("+")}]=${c.dice.reduce((a, b) => a + b, 0)}` +
+  return `<div class="check">${ICO_DICE} <b>${c.label}</b>: [${c.dice.join("+")}]=${c.dice.reduce((a, b) => a + b, 0)}` +
     (dms ? ` · ${dms}` : "") +
     ` → <b>${c.total}</b> vs ${c.target}+ → ${res} (Effect ${c.effect >= 0 ? "+" : ""}${c.effect}) <span class="dim">${c.page || ""}</span></div>`;
 }
@@ -767,10 +786,10 @@ function hexInfoCard(secName, hex, info) {
   const chips = [`<span class="chip chip-si">SI ${info?.si ?? 0}</span>`];
   if (info?.stars?.length) chips.push(`<span class="chip">${info.stars.map(decodeStar).join(", ")}</span>`);
   else if (info?.star_presence) chips.push(`<span class="chip chip-dim">${T.tipStar}</span>`);
-  if (info?.gas_giant === true) chips.push(`<span class="chip chip-ok">${T.tipGG}</span>`);
+  if (info?.gas_giant === true) chips.push(`<span class="chip chip-ok">${ico("gg")} ${T.tipGG}</span>`);
   if (info?.uwp) chips.push(`<span class="chip"><code>${info.uwp}</code></span>`);
-  if (info?.zone === "A") chips.push(`<span class="chip chip-warn">AMBER</span>`);
-  if (info?.zone === "R") chips.push(`<span class="chip chip-bad">RED</span>`);
+  if (info?.zone === "A") chips.push(`<span class="chip chip-warn">${ICO_WARN} AMBER</span>`);
+  if (info?.zone === "R") chips.push(`<span class="chip chip-bad">${ICO_BAD} RED</span>`);
   return `<div class="tip-title">${title}</div><div class="tip-chips">${chips.join("")}</div>`;
 }
 
@@ -824,13 +843,54 @@ async function renderMap() {
   };
 
   let out = SVG_DEFS;
-  /* tlo: miekkie mglawice (gradienty, bez filtrow SVG - unikamy artefaktow) */
+  /* atmosfera rysowana NAD wypelnieniami hexow (fill hexa jest kryjacy),
+     ale pod glifami — trafia na poczatek `overlays` */
+  let atmo = "";
   const bgX = -PREV * 1.5 * R - R, bgY = (-PREV - 1) * H;
   const bgW = (33 + 2 * PREV) * 1.5 * R + 2 * R, bgH = (42 + 2 * PREV) * H;
-  out += `<rect x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" fill="url(#neb1)" pointer-events="none"/>`;
-  out += `<rect x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" fill="url(#neb2)" pointer-events="none"/>`;
+  atmo += `<rect class="neb" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" fill="url(#neb1)" pointer-events="none"/>`;
+  atmo += `<rect class="neb" x="${bgX}" y="${bgY}" width="${bgW}" height="${bgH}" fill="url(#neb2)" pointer-events="none"/>`;
 
-  let labels = "", overlays = "";
+  /* starfield: CZYSTA dekoracja — seed z nazwy sektora, zero wiedzy o systemach
+     (fog-of-war nietkniety; w motywie paper ukrywany w CSS) */
+  let sfSeed = 2166136261;
+  for (const ch of CUR_SECTOR) sfSeed = Math.imul(sfSeed ^ ch.charCodeAt(0), 16777619) >>> 0;
+  const sfRnd = () => {
+    sfSeed = (sfSeed + 0x6D2B79F5) >>> 0;
+    let t = sfSeed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  let sf = "";
+  for (let i = 0; i < 150; i++) {
+    const x = bgX + sfRnd() * bgW, y = bgY + sfRnd() * bgH;
+    const r = 0.1 + sfRnd() * 0.32, o = 0.12 + sfRnd() * 0.45;
+    sf += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" opacity="${o.toFixed(2)}"/>`;
+  }
+  atmo += `<g class="starfield" fill="var(--map-star)" pointer-events="none">${sf}</g>`;
+
+  /* siatka subsektorow 4x4 z literami A-P (jak na kartach sektora) */
+  const gx0 = hexCenter(1, 1)[0] - R, gx1 = hexCenter(32, 1)[0] + R;
+  const gy0 = -H / 2, gy1 = 40 * H;
+  let grid = "";
+  for (const c of [8, 16, 24]) {
+    const x = (c - 0.5) * 1.5 * R;
+    grid += `<line class="subsec-line" x1="${x.toFixed(1)}" y1="${gy0.toFixed(1)}" x2="${x.toFixed(1)}" y2="${gy1.toFixed(1)}"/>`;
+  }
+  for (const rw of [10, 20, 30]) {
+    const y = (rw - 0.25) * H;
+    grid += `<line class="subsec-line" x1="${gx0.toFixed(1)}" y1="${y.toFixed(1)}" x2="${gx1.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }
+  for (let sy = 0; sy < 4; sy++)
+    for (let sx = 0; sx < 4; sx++) {
+      const letter = String.fromCharCode(65 + sy * 4 + sx);
+      const [lx] = hexCenter(sx * 8 + 1, 1);
+      grid += `<text class="subsec-label" x="${(lx - R * 0.4).toFixed(1)}" y="${((sy * 10 + 0.35) * H).toFixed(1)}">${letter}</text>`;
+    }
+  atmo += `<g pointer-events="none">${grid}</g>`;
+
+  let labels = "", overlays = atmo;
   const drawHex = (hx, hy, info, opts) => {
     const [cx, cy] = hexCenter(hx, hy);
     const si = info?.si ?? 0;
@@ -1087,15 +1147,15 @@ function bar(pct) {
 }
 function renderTopbar() {
   const C = STATE.ship_constants;
-  $("tb-date").textContent = `📅 ${STATE.date_imperial} (${T.missionDay(STATE.mission_day)})`;
-  $("tb-pos").textContent = `📍 ${STATE.position.sector} ${STATE.position.hex}`;
+  $("tb-date").innerHTML = `${ico("cal")} ${STATE.date_imperial} (${T.missionDay(STATE.mission_day)})`;
+  $("tb-pos").innerHTML = `${ico("pos")} ${STATE.position.sector} ${STATE.position.hex}`;
   const fp = (100 * STATE.fuel_tons) / C.fuel_tank_tons;
   const jumps = Math.floor(STATE.fuel_tons / C.fuel_per_parsec);
-  $("tb-fuel").innerHTML = `⛽ ${num(Math.round(STATE.fuel_tons))} t ${bar(fp)} <span class="dim">${jumps} ${T.pcWord}</span>`;
+  $("tb-fuel").innerHTML = `${ico("fuel")} ${num(Math.round(STATE.fuel_tons))} t ${bar(fp)} <span class="dim">${jumps} ${T.pcWord}</span>`;
   const sp = (100 * STATE.supply_units) / C.supply_capacity;
   const days = Math.floor(STATE.supply_units / STATE.supply_budget_per_day);
-  $("tb-su").innerHTML = `📦 SU ${bar(sp)} <span class="dim">${days} ${T.daysWord}</span>`;
-  $("tb-crew").textContent = `👥 ECEI ${STATE.cei + STATE.ceim} · MOR ${STATE.mor} · CFI ${STATE.cfi}`;
+  $("tb-su").innerHTML = `${ico("box")} SU ${bar(sp)} <span class="dim">${days} ${T.daysWord}</span>`;
+  $("tb-crew").innerHTML = `${ico("crew")} ECEI ${STATE.cei + STATE.ceim} · MOR ${STATE.mor} · CFI ${STATE.cfi}`;
 }
 
 /* ==================== PANEL STATKU (współczynniki + akcje) =============== */
@@ -1141,7 +1201,7 @@ function renderStats() {
     });
   });
   const rows = [];
-  for (const [kind, key, ikona] of [["defect", "defects", "🔧"], ["breakdown", "breakdowns", "⚠"], ["failure", "failures", "⛔"]]) {
+  for (const [kind, key, ikona] of [["defect", "defects", ico("wrench")], ["breakdown", "breakdowns", ICO_WARN], ["failure", "failures", ICO_BAD]]) {
     for (const d of STATE[key] || [])
       rows.push(`<div class="defect-row">${ikona} <b>${d.system}</b>${d.note ? " — " + d.note : ""}
         <button class="mini" data-kind="${kind}" data-system="${d.system}">${T.repair}</button></div>`);
@@ -1182,7 +1242,7 @@ function renderShipActions() {
     try {
       const out = await api("/api/action/wait", { method: "POST", body: JSON.stringify({ days: 7 }) });
       $("ship-result").innerHTML = T.waitDone(out.date_imperial, num(out.supply_units)) +
-        trNotes(out.notes).map((n) => `<div class="warn">⚠ ${n}</div>`).join("");
+        trNotes(out.notes).map((n) => `<div class="warn">${ICO_WARN} ${n}</div>`).join("");
       await refreshState();
       invalidateSector(CUR_SECTOR);
       CUR_MAP = await getSector(CUR_SECTOR);
@@ -1216,6 +1276,9 @@ async function refreshState() {
 async function selectHex(hex) {
   SELECTED = hex;
   await renderMap();
+  /* skeleton na czas requestu — panel nie "znika" przy wolniejszym API */
+  if (!$("hex-desc").innerHTML)
+    $("hex-desc").innerHTML = `<div class="skel" style="width:78%"></div><div class="skel" style="width:52%"></div>`;
   const view = await api(`/api/system/${encodeURIComponent(CUR_SECTOR)}/${hex}`);
   const here = STATE.position.sector === CUR_SECTOR && STATE.position.hex === hex;
   const shipSec = SECTORS.find((s) => s.name === STATE.position.sector);
@@ -1239,6 +1302,11 @@ async function selectHex(hex) {
   renderBodies(view);
   $("hex-detail").innerHTML = "";
   renderActions(hex, view, here, d);
+  /* retrigger animacji fade na zawartosci karty (motion, Etap 5.5) */
+  const hp = $("hex-panel");
+  hp.classList.remove("fade-swap");
+  void hp.offsetWidth;
+  hp.classList.add("fade-swap");
 }
 
 function renderActions(hex, view, here, d) {
@@ -1297,7 +1365,7 @@ function renderActions(hex, view, here, d) {
   const run = async (fn) => {
     try {
       const out = await fn();
-      const notes = trNotes(out.notes).map((n) => `<div class="warn">⚠ ${n}</div>`).join("");
+      const notes = trNotes(out.notes).map((n) => `<div class="warn">${ICO_WARN} ${n}</div>`).join("");
       $("action-result").innerHTML = fmtCheck(out.check) + (out._msg || "OK") + notes;
       recordRoll(out);
       await refreshState();
