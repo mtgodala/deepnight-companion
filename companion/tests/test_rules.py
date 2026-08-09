@@ -261,3 +261,34 @@ def test_bodies_detail_deterministic_and_gg():
         assert all(x["zone"] in zones for x in a["bodies_detail"])
         if a["gas_giant"]:
             assert any(x["kind"] == "gg" for x in a["bodies_detail"])
+
+
+# --- audyt 2026-08-08: remote sweep i tankowanie z lodu ---
+
+def test_remote_sweep_costs_days_and_cumulates():
+    """Remote: koszt 2D scan points => czas w dniach (B3 p.72+74);
+    NIE podlega largest-increase (p.73 dotyczy passive/active/full)."""
+    r = survey.apply_sweep(3, "remote", effect=2, rng=random.Random(1))
+    assert r.time_unit == "d"
+    assert 1 <= r.time_amount <= 2                    # ceil(2D/6)
+    assert 2 <= r.dice_log["scan_points"] <= 12
+    assert r.si_after == 3 + 4                        # 2*Effect, kumulacja od SI
+    assert r.applied
+
+
+def test_remote_sweep_failed_check_no_gain():
+    r = survey.apply_sweep(5, "remote", effect=0, rng=random.Random(1))
+    assert r.si_after == 5 and not r.applied
+
+
+def test_insystem_surveys_keep_largest_increase():
+    """Passive po sweepie +3 nie podnosi SI (largest increase, B3 p.73)."""
+    r = survey.apply_sweep(6, "passive", best_sweep_gain=3, rng=random.Random(1))
+    assert r.si_after == 6 and not r.applied
+
+
+def test_ice_refuel_check_flight_division():
+    ship = {"cei": 7, "ceim": 0, "dei": {"flight": 7}}
+    c = checks.ice_refuel_check(ship, rng=random.Random(4))
+    assert c.target == 8
+    assert c.page == "B3 p.70"

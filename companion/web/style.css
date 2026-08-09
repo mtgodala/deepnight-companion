@@ -397,6 +397,13 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
   font-size: calc(5px * var(--gs)); fill: var(--canon);
   paint-order: stroke; stroke: var(--g-950); stroke-width: .8px;
 }
+/* szlak statku: trwały pierścień na każdym odwiedzonym hexie */
+.visited-ring {
+  fill: none; stroke: var(--accent); stroke-width: .7;
+  opacity: .22; pointer-events: none;
+}
+[data-theme="paper"] .visited-ring { opacity: .35; stroke-dasharray: 1.6 1.1; }
+
 /* siatka subsektorów 4×4 — litery A-P jak na kartach sektora */
 .subsec-line { stroke: var(--canon); stroke-width: .5; opacity: .12; pointer-events: none; }
 .subsec-label {

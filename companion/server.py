@@ -192,15 +192,27 @@ def advance_time(s: dict, hours: float, dwelling: bool = True) -> list[str]:
                                               min(100, pct))
         if s["supply_units"] <= 0:
             notes.append("SUPPLY 0: brak zapasow - auto CEIM/MOR -1D co 2D dni (B3 p.49)")
-        # pobyt w systemie: +1 SI co 1D dni (B3 p.74)
+        # paliwo reaktora: 900 t / 8 tygodni operacji = 112,5 t/tydz.
+        # (B2 karta: zbiornik 27 900 = 27 000 na J-4 + 900 na operacje; spec par.0)
+        if s.get("fuel_tons", 0) > 0:
+            burn = days * tables.SHIP["powerplant_tons_per_week"] / 7
+            s["fuel_tons"] = max(0.0, round(s["fuel_tons"] - burn, 1))
+            if s["fuel_tons"] <= 0:
+                notes.append("PALIWO 0: zbiorniki puste - reaktor bez rezerwy "
+                             "(B2: 8 tygodni operacji)")
+        # pobyt w systemie: +1 SI co 1D dni (B3 p.74) - prog losowany 1D
+        # i utrwalany per hex (dwell_next), nie stala srednia
         if dwelling and s.get("position"):
             sv = survey_state()
             key = hex_key(s["position"]["sector"], s["position"]["hex"])
             sv["dwell_days"][key] = sv["dwell_days"].get(key, 0) + days
             gained = 0
-            while sv["dwell_days"][key] >= 6:  # srednia 1D
-                sv["dwell_days"][key] -= 6
+            nxt = sv.setdefault("dwell_next", {}).get(key) or roll("1D")
+            while sv["dwell_days"][key] >= nxt:
+                sv["dwell_days"][key] -= nxt
                 gained += 1
+                nxt = roll("1D")
+            sv["dwell_next"][key] = nxt
             if gained:
                 cur = sv["si"].get(key, 0)
                 sv["si"][key] = min(tables.SI_MAX, cur + gained)
@@ -340,7 +352,7 @@ class JumpBody(BaseModel):
 
 class SkimBody(BaseModel):
     tons: float
-    mode: str = "deep"              # deep|safe
+    mode: str = "deep"              # deep|safe|ice (ice = kometa/cialo lodowe)
 
 
 class WaitBody(BaseModel):
@@ -498,19 +510,23 @@ def action_scan(body: ScanBody) -> dict:
 
     check = None
     if body.mode == "remote":
-        # check silnika: Average (8+) na DEI Mission/ECEI, DM+2 suite (B3 p.72)
+        # check silnika: Average (8+) na DEI Mission/ECEI, DM+2 suite (B3 p.72).
+        # Remote NIE wchodzi do puli largest-increase (B3 p.73 dotyczy tylko
+        # passive/active/full) - przyrosty kumuluja sie ze sweepami na miejscu.
         chk = checks.remote_sweep_check(s)
         check = chk.as_dict()
-        res = survey.apply_sweep(si, "remote", best_sweep_gain=best,
+        res = survey.apply_sweep(si, "remote",
                                  effect=max(0, chk.effect) if chk.success else 0)
     else:
         res = survey.apply_sweep(si, body.mode, best_sweep_gain=best)
+        sv["best_sweep"][key] = max(best, res.gain)
 
     sv["si"][key] = res.si_after
-    sv["best_sweep"][key] = max(best, res.gain)
     save_survey(sv)
 
-    hours = res.time_amount / 60 if res.time_unit == "min" else res.time_amount
+    hours = (res.time_amount / 60 if res.time_unit == "min"
+             else res.time_amount * 24 if res.time_unit == "d"
+             else res.time_amount)
     notes = advance_time(s, hours)
     if res.reveals_ship:
         s.setdefault("detected_by", []).append(
@@ -526,7 +542,7 @@ def action_scan(body: ScanBody) -> dict:
               {"mode": body.mode, "gain": res.gain, "applied": res.applied})
     return {"si_before": res.si_before, "si_after": res.si_after,
             "gain": res.gain, "applied": res.applied,
-            "best_sweep": sv["best_sweep"][key],
+            "best_sweep": sv["best_sweep"].get(key, 0),
             "time": f"{res.time_amount} {res.time_unit}",
             "reveals_ship": res.reveals_ship, "notes": notes,
             "check": check, "rolls": res.dice_log,
@@ -585,31 +601,62 @@ def action_jump(body: JumpBody) -> dict:
 def action_skim(body: SkimBody) -> dict:
     snapshot("skim")
     s = ship()
-    rec = get_system_record(s["position"]["sector"], s["position"]["hex"])
-    if rec.get("empty") or not rec.get("gas_giant"):
+    pos = s["position"]
+    rec = get_system_record(pos["sector"], pos["hex"])
+    ice_obj = None
+    if body.mode == "ice":
+        # tankowanie z komety/ciala lodowego znalezionego Short-Range Detection
+        # (B3 p.70 + p.75-76); HR: tempo ogranicza procesor 4000 t/dzien
+        for o in rec.get("deep_space_objects", []):
+            if o.get("kind") in ("small_comet", "cometary_body") and not o.get("exhausted"):
+                ice_obj = o
+                break
+        if ice_obj is None:
+            raise HTTPException(400, "Brak znanej komety/ciala lodowego w tym hexie "
+                                     "- najpierw Short-Range Detection (B3 p.75)")
+    elif rec.get("empty") or not rec.get("gas_giant"):
         raise HTTPException(400, "Brak potwierdzonego gazowego olbrzyma w tym systemie "
                                  "(wymagane SI 5+ i obecnosc GG)")
     room = tables.SHIP["fuel_tank_tons"] - s["fuel_tons"]
     tons = min(body.tons, room)
     if tons <= 0:
         raise HTTPException(400, "Zbiorniki pelne")
-    plan = jump.plan_skim(tons, body.mode,
-                          processor_defects=sum(1 for d in s["defects"]
-                                                if d.get("system") == "fuel_processors"))
-    # check silnika: Mission na DEI Flight, glebokie warstwy DM-2 (B3 p.68)
-    chk = checks.skim_check(s, body.mode)
+    defects = sum(1 for d in s["defects"] if d.get("system") == "fuel_processors")
     extra_notes = []
-    if not chk.success:
-        plan.skim_time_min = int(plan.skim_time_min * 1.5)
-        extra_notes.append("Operacja poszła opornie: czas +50%; zalecany check "
-                           "Erosion of Capabilities (B3 p.56) [HR]")
+    if body.mode == "ice":
+        slowdown = 1 + 0.10 * defects
+        plan = jump.SkimPlan(passes=0, tons_skimmed=int(tons), skim_time_min=0,
+                             processing_days=round(
+                                 tons / tables.SHIP["fuel_processor_tons_per_day"]
+                                 * slowdown, 2),
+                             pilot_dm=0, mode="ice")
+        chk = checks.ice_refuel_check(s)
+        if not chk.success:
+            plan.processing_days = round(plan.processing_days * 1.5, 2)
+            extra_notes.append("Operacja poszła opornie: czas +50%; zalecany check "
+                               "Erosion of Capabilities (B3 p.56) [HR]")
+        if ice_obj["kind"] == "small_comet":
+            ice_obj["exhausted"] = True
+            extra_notes.append("Kometa wyczerpana - starczyla na jedno tankowanie (B3 p.76)")
+        _write_json(STATE / "systems" / f"{sector_slug(pos['sector'])}-{pos['hex']}.json", rec)
+    else:
+        plan = jump.plan_skim(tons, body.mode, processor_defects=defects)
+        # check silnika: Mission na DEI Flight, glebokie warstwy DM-2 (B3 p.68)
+        chk = checks.skim_check(s, body.mode)
+        if not chk.success:
+            plan.skim_time_min = int(plan.skim_time_min * 1.5)
+            extra_notes.append("Operacja poszła opornie: czas +50%; zalecany check "
+                               "Erosion of Capabilities (B3 p.56) [HR]")
     s["fuel_tons"] = min(tables.SHIP["fuel_tank_tons"],
                          s["fuel_tons"] + plan.tons_skimmed)
     hours = plan.skim_time_min / 60 + plan.processing_days * 24
     notes = advance_time(s, hours) + extra_notes
     save_ship(s)
-    log_event("skim", f"Skimming ({'glebokie warstwy' if body.mode == 'deep' else 'gorne warstwy'}): "
-                      f"{plan.passes} passow, +{plan.tons_skimmed} t, "
+    src = {"deep": "glebokie warstwy", "safe": "gorne warstwy",
+           "ice": "lod z komety"}[body.mode]
+    log_event("skim", f"Tankowanie ({src}): "
+                      + (f"{plan.passes} passow, " if plan.passes else "")
+                      + f"+{plan.tons_skimmed} t, "
                       f"przetwarzanie {plan.processing_days} dnia",
               plan.__dict__)
     return {"plan": plan.__dict__, "fuel_tons": s["fuel_tons"],

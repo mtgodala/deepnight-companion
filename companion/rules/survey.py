@@ -17,7 +17,7 @@ class SweepResult:
     gain: int
     applied: bool          # False gdy zasada "largest increase" skasowala przyrost
     time_amount: int
-    time_unit: str         # "min" / "h"
+    time_unit: str         # "min" / "h" / "d"
     reveals_ship: bool
     dice_log: dict
 
@@ -48,7 +48,20 @@ def apply_sweep(
         if effect is None:
             raise ValueError("tryb remote wymaga effect z checku Average(8+)")
         gain = max(0, 2 * effect)
-    elif mode == "passive":
+        # Koszt: 2D Scan Points przy produkcji 6/dzien => czas w DNIACH
+        # (B3 p.72 + p.74). Remote NIE podlega regule largest-increase -
+        # ta dotyczy tylko trzech surveyow z p.73; przyrosty sie kumuluja.
+        sp = roll("2D", rng)
+        dice_log["scan_points"] = sp
+        days = -(-sp // tables.SCAN_POINTS_PER_DAY)
+        dice_log["time"] = days
+        return SweepResult(
+            mode=mode, si_before=si,
+            si_after=min(tables.SI_MAX, si + gain),
+            gain=gain, applied=gain > 0, time_amount=days, time_unit="d",
+            reveals_ship=False, dice_log=dice_log,
+        )
+    if mode == "passive":
         gain = 1
     elif mode == "active":
         gain = roll("D3", rng)

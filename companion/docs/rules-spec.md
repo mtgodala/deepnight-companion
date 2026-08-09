@@ -53,12 +53,15 @@ SI per hex, skala 0-12. Dane nie są w 100% dokładne, błędy „w granicach mo
 - **Start:** mapa gwiezdna daje SI 1-3; przy pierwszym zainteresowaniu hexem rzuć **D3** (B3 p.71).
 - **Instrumenty automatyczne:** np. gravitic survey ⇒ całe otoczenie na SI 5 (B3 p.72).
 - **Podnoszenie:**
-  1. Remote sensor sweep: Average (8+) DEI lub Electronics (sensors); sukces ⇒ **SI += 2×Effect**; DM+2 suite naukowy DNR (B3 p.72)
+  1. Remote sensor sweep: Average (8+) DEI lub Electronics (sensors); sukces ⇒ **SI += 2×Effect**; DM+2 suite naukowy DNR; koszt **2D Scan Points** przy produkcji 6/dzień ⇒ ~1-2 dni (B3 p.72 + p.74)
   2. Passive survey: 2D minut, **+1 SI**, nie zdradza pozycji (B3 p.73)
   3. Active survey: 2D godzin, **+D3 SI**, **ujawnia statek** wszystkim nasłuchującym (B3 p.73)
   4. Full survey: 4D godzin, **+1D SI**, wymaga zmiany pozycji (B3 p.74)
   5. Pobyt w systemie: **+1 SI co 1D dni** zbierania danych (B3 p.74)
-- **REGUŁA: liczy się tylko NAJWIĘKSZY pojedynczy przyrost, nie suma** (Active +2 potem Full +4 ⇒ +4, nie +6) (B3 p.73). Interpretacja silnika: dotyczy sweepów tego samego „poziomu wiedzy"; pobyt i remote sweep kumulują się osobno — FLAGA do decyzji GM.
+- **REGUŁA: liczy się tylko NAJWIĘKSZY pojedynczy przyrost, nie suma** (Active +2 potem Full +4 ⇒ +4, nie +6) (B3 p.73). Zakres: reguła z p.73 obejmuje **trzy surveye na miejscu (passive/active/full)**; remote sweep (p.72) i pobyt (p.74) kumulują się osobno — tak działa silnik (audyt 2026-08-08).
+- **Pobyt (silnik):** próg 1D dni losowany i utrwalany per hex (`dwell_next` w survey.json); poprzednia stała „co 6 dni" była nieoznaczonym HR — usunięta.
+- **Paliwo reaktora (silnik):** 112,5 t/tydz. odejmowane przy każdym upływie czasu (`advance_time`); potwierdzone praktyką społeczności (~16 t/dzień, blog notasnark).
+- **Tankowanie z lodu (silnik, HR):** kometa/ciało z Short-Range Detection ⇒ akcja „ice" w /api/action/skim; B3 p.70 nie podaje tempa — wąskim gardłem procesor 4 000 t/dzień; check DEI Flight, porażka ⇒ czas +50%; `small_comet` = jedno tankowanie (exhausted).
 
 ### SI w deep space (B3 p.74)
 Progi detekcji (scan points, patrz §2): gwiazda auto; brown dwarf 4; large GG 6; small GG 8; planeta 10; kometa 12; **+1 za każdy parsek odległości**.
@@ -287,7 +290,7 @@ Modyfikatory (B3 p.23): specialist +2 / improved equipment +1 / pressure -1 / ex
 | Research Events (p.82) | 1-3/3-5 nachodzą na 3 | 3 ⇒ niższe pasmo |
 | Effects of Fatigue (p.42) | kolumna DM rozjechana | Fatigued=0 … Incapable=-4 (jak w raporcie) |
 | Maintenance Issues (p.53) | 45 w dwóch wierszach | 45 ⇒ 43-45 |
-| SI „largest increase" (p.73) | zakres reguły niejasny | sweepy: max; pobyt/remote: kumulacja — do zatwierdzenia przez GM |
+| SI „largest increase" (p.73) | zakres reguły niejasny | ROZSTRZYGNIĘTE (audyt 2026-08-08): passive/active/full = max; pobyt i remote = kumulacja |
 
 ## 14. POZA ZAKRESEM SILNIKA (świadomie)
 

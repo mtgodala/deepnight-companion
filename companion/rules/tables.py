@@ -44,8 +44,10 @@ SI_MAX = 12
 
 # Tryby sweepu systemu (B3 p.72-74): (czas: kosc, jednostka), przyrost SI, flagi
 SURVEY_MODES = {
-    # remote: Average(8+) DEI/Electronics; SI += 2*Effect (B3 p.72)
-    "remote": {"time": ("2D", "min"), "si_gain": "2xEffect", "reveals_ship": False,
+    # remote: Average(8+) DEI/Electronics; SI += 2*Effect; koszt 2D Scan Points
+    # przy produkcji 6/dzien => 1-2 dni (B3 p.72 + p.74). POZA regula
+    # largest-increase - ta obejmuje tylko passive/active/full (B3 p.73)
+    "remote": {"time": ("2D", "sp"), "si_gain": "2xEffect", "reveals_ship": False,
                "check": ("Average", 8), "page": "B3 p.72"},
     "passive": {"time": ("2D", "min"), "si_gain": "+1", "reveals_ship": False,
                 "page": "B3 p.73"},

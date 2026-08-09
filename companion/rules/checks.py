@@ -104,6 +104,16 @@ def skim_check(ship: dict, mode: str, rng: random.Random | None = None) -> Check
                        page="B3 p.68")
 
 
+def ice_refuel_check(ship: dict, rng: random.Random | None = None) -> CheckResult:
+    """Zbior lodu z komety/ciala lodowego (B3 p.70): operacja Dywizji Flight.
+
+    HR — B3 nie podaje tempa poboru lodu; waskim gardlem jest procesor paliwa
+    (B2: 4000 t/dzien). Porazka checku => czas +50% (jak skimming, HR).
+    """
+    return CheckResult("Zbiór lodu (operacja Dywizji Flight)", roll_2d(rng),
+                       [division_dm(ship, "flight")], 8, page="B3 p.70")
+
+
 def fuel_source_search_check(ship: dict, density: str,
                              rng: random.Random | None = None) -> CheckResult:
     """Szukanie zrodla paliwa w systemie (B3 p.69) na DEI Mission."""

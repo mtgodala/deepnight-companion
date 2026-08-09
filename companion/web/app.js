@@ -181,13 +181,14 @@ const PL = {
   outOfRange: (d) => `Cel ${d} pc — poza zasięgiem J-4; trasa wychodzi poza znane sektory.`,
   scanHintHere: "SKANY tego systemu — kośćmi rzuca silnik (B3 p.72-74):",
   scanHintRemote: (d) => `Statek jest gdzie indziej — z dystansu (${d} pc) działa tylko zdalny sweep (B3 p.72). Pełne skany wymagają skoku do tego systemu:`,
-  actRemote: "Zdalny sweep", actRemoteRule: "check Average (8+) na DEI Mission · SI +2×Effect",
+  actRemote: "Zdalny sweep", actRemoteRule: "check Average (8+) na DEI Mission · SI +2×Effect · 2D scan points ≈ 1-2 dni",
   actPassive: "Skan pasywny", actPassiveRule: "+1 SI · 2D min · nie zdradza pozycji",
   actActive: `Skan aktywny ${ICO_WARN}`, actActiveRule: "+D3 SI · 2D h · ujawnia statek nasłuchującym",
   actFull: "Pełny survey", actFullRule: "+1D SI · 4D h · wymaga manewrów",
   actShortrange: "Short-Range Detection", actShortrangeRule: "szukaj obiektów w pustce · 1D dni (B3 p.75)",
   actSkim: "Skimming — głębokie warstwy", actSkimRule: "750 t/pass · check DEI Flight z DM-2",
   actSkimSafe: "Skimming — górne warstwy", actSkimSafeRule: "375 t/pass · bezpiecznie",
+  actIce: "Tankowanie z lodu — kometa", actIceRule: "procesor 4 000 t/dzień · check DEI Flight (B3 p.70) [HR]",
   activeConfirmTitle: "Skan aktywny",
   activeConfirmBody: "Aktywny skan ujawni pozycję Deepnight każdemu, kto nasłuchuje (B3 p.73). Kontynuować?",
   scanWord: "Skanuj",
@@ -201,6 +202,8 @@ const PL = {
   scanGain: (g) => ` (${ICO_DICE} przyrost: ${g})`, timeWord: "czas",
   noProgress: (best) => ` — bez postępu: liczy się tylko NAJWIĘKSZY pojedynczy przyrost (B3 p.73), a dotychczasowy najlepszy sweep dał +${best}. SI podniesie mocniejszy wynik albo pobyt w systemie (+1 co ~6 dni, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passów, +${t} t, przetwarzanie ${d} dnia`,
+  iceDone: (t, d) => `Tankowanie z lodu: +${t} t, przetwarzanie ${d} dnia`,
+  noGainRemote: " — sweep bez przyrostu SI (nieudany check)",
   srMsg: (roll, near, days, found) => `${ICO_DICE} 2D+DM = ${roll} (najbliższa gwiazda ${near} pc) · sweep ${days} dni → ${found}`,
   srNothing: "nic nie znaleziono",
   /* dziennik */
@@ -354,13 +357,14 @@ const EN = {
   outOfRange: (d) => `Target ${d} pc away — beyond J-4 range; the route leaves known sectors.`,
   scanHintHere: "SCANS of this system — the engine rolls the dice (B3 p.72-74):",
   scanHintRemote: (d) => `The ship is elsewhere — at range (${d} pc) only a remote sweep works (B3 p.72). Full scans require jumping to this system:`,
-  actRemote: "Remote sweep", actRemoteRule: "Average (8+) check on DEI Mission · SI +2×Effect",
+  actRemote: "Remote sweep", actRemoteRule: "Average (8+) check on DEI Mission · SI +2×Effect · 2D scan points ≈ 1-2 days",
   actPassive: "Passive scan", actPassiveRule: "+1 SI · 2D min · does not reveal position",
   actActive: `Active scan ${ICO_WARN}`, actActiveRule: "+D3 SI · 2D h · reveals the ship to listeners",
   actFull: "Full survey", actFullRule: "+1D SI · 4D h · requires manoeuvring",
   actShortrange: "Short-Range Detection", actShortrangeRule: "search the void for objects · 1D days (B3 p.75)",
   actSkim: "Skimming — deep layers", actSkimRule: "750 t/pass · DEI Flight check at DM-2",
   actSkimSafe: "Skimming — upper layers", actSkimSafeRule: "375 t/pass · safe",
+  actIce: "Ice refuelling — comet", actIceRule: "processor 4,000 t/day · DEI Flight check (B3 p.70) [HR]",
   activeConfirmTitle: "Active scan",
   activeConfirmBody: "An active scan reveals Deepnight's position to anyone listening (B3 p.73). Continue?",
   scanWord: "Scan",
@@ -374,6 +378,8 @@ const EN = {
   scanGain: (g) => ` (${ICO_DICE} gain: ${g})`, timeWord: "time",
   noProgress: (best) => ` — no progress: only the LARGEST single increase counts (B3 p.73), and the best sweep so far gave +${best}. SI will rise from a stronger result or from dwelling in-system (+1 per ~6 days, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passes, +${t} t, processing ${d} days`,
+  iceDone: (t, d) => `Ice refuelling: +${t} t, processing ${d} days`,
+  noGainRemote: " — sweep gave no SI increase (failed check)",
   srMsg: (roll, near, days, found) => `${ICO_DICE} 2D+DM = ${roll} (nearest star ${near} pc) · sweep ${days} days → ${found}`,
   srNothing: "nothing found",
   KIND: { init: "START", scan: "SCAN", jump: "JUMP", skim: "FUEL",
@@ -434,6 +440,9 @@ const EN_SRV_NOTES = [
   [/^Operacja posz/, "Operation went poorly: time +50%; Erosion of Capabilities check advised (B3 p.56) [HR]"],
   [/wymaga obecno/, "Passive/active/full survey requires being in the system — only a remote sweep works at range (B3 p.72-73)"],
   [/^Zbiorniki pe/, "Tanks are full"],
+  [/^PALIWO 0:/, "FUEL 0: tanks dry - reactor has no reserve (B2: 8 weeks of operation)"],
+  [/^Kometa wyczerpana/, "Comet exhausted - it was good for a single refuelling (B3 p.76)"],
+  [/^Brak znanej komety/, "No known comet/ice body in this hex - run Short-Range Detection first (B3 p.75)"],
   [/^Brak potwierdzonego gazowego olbrzyma/, "No confirmed gas giant in this system (requires SI 5+ and a GG present)"],
   [/^Brak akcji do cofni/, "No action to undo"],
 ];
@@ -645,11 +654,11 @@ let BASE_VB = null, VIEW = null;   // zoom/pan: VIEW = {x,y,w,h} albo null (cał
 function hexCenter(hx, hy) {
   return [(hx - 1) * 1.5 * R, (hy - 1) * H + (((hx % 2) + 2) % 2 === 0 ? H / 2 : 0)];
 }
-function hexPoints(cx, cy) {
+function hexPoints(cx, cy, r = R) {
   const pts = [];
   for (let i = 0; i < 6; i++) {
     const a = (Math.PI / 180) * 60 * i;
-    pts.push(`${(cx + R * Math.cos(a)).toFixed(1)},${(cy + R * Math.sin(a)).toFixed(1)}`);
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
   }
   return pts.join(" ");
 }
@@ -891,6 +900,8 @@ async function renderMap() {
   atmo += `<g pointer-events="none">${grid}</g>`;
 
   let labels = "", overlays = atmo;
+  /* szlak: hexy, przez ktore statek faktycznie przeszedl (trail w ship.json) */
+  const visited = new Set((STATE.trail || []).map((t) => `${t.sector}|${t.hex}`));
   const drawHex = (hx, hy, info, opts) => {
     const [cx, cy] = hexCenter(hx, hy);
     const si = info?.si ?? 0;
@@ -898,6 +909,8 @@ async function renderMap() {
       `${opts.selected ? " selected" : ""}${!opts.preview && inRange(hx, hy) ? " in-range" : ""}` +
       `${inRangeSel(hx, hy) ? " in-range-sel" : ""}`;
     out += `<polygon class="${cls}" data-sec="${opts.sec}" data-hex="${opts.hex}" points="${hexPoints(cx, cy)}"/>`;
+    if (visited.has(`${opts.sec}|${opts.hex}`))
+      overlays += `<polygon class="visited-ring" points="${hexPoints(cx, cy, R * 0.62)}"/>`;
     if (!opts.preview)
       labels += `<text class="hex-label" x="${cx}" y="${cy - H / 2 + 3.6}" text-anchor="middle">${opts.hex}</text>`;
     if (BOOKMARKS.some((m) => m.sector === opts.sec && m.hex === opts.hex))
@@ -976,7 +989,7 @@ async function renderMap() {
   const nSeg = pts.length - 1;
   for (let i = 0; i < nSeg; i++) {
     if (!pts[i] || !pts[i + 1]) continue;
-    const op = 0.25 + 0.6 * ((i + 1) / nSeg);
+    const op = 0.45 + 0.45 * ((i + 1) / nSeg);
     overlays += `<line class="trail-seg" x1="${pts[i][0]}" y1="${pts[i][1]}" x2="${pts[i + 1][0]}" y2="${pts[i + 1][1]}" stroke-width="${0.7 + 0.5 * ((i + 1) / nSeg)}" opacity="${op.toFixed(2)}"/>`;
   }
   if (STATE.position) {
@@ -1356,6 +1369,10 @@ function renderActions(hex, view, here, d) {
       html.push(btn("act-skim", T.actSkim, T.actSkimRule));
       html.push(btn("act-skim-safe", T.actSkimSafe, T.actSkimSafeRule));
     }
+    /* tankowanie z komety znalezionej Short-Range Detection (B3 p.70+75-76) */
+    if ((view.deep_space_objects || []).some((o) =>
+        (o.kind === "small_comet" || o.kind === "cometary_body") && !o.exhausted))
+      html.push(btn("act-ice", T.actIce, T.actIceRule));
   } else {
     html.push(`<div class="hint">${T.scanHintRemote(d)}</div>`);
     html.push(btn("act-remote", T.actRemote, T.actRemoteRule));
@@ -1389,7 +1406,7 @@ function renderActions(hex, view, here, d) {
     ]);
     const roll = out.rolls?.si_gain != null ? T.scanGain(out.rolls.si_gain) : "";
     out._msg = `SI ${out.si_before} → ${out.si_after}${roll} · ${T.timeWord} ${out.time}` +
-      (out.applied ? "" : T.noProgress(out.best_sweep ?? "?"));
+      (out.applied ? "" : (mode === "remote" ? T.noGainRemote : T.noProgress(out.best_sweep ?? "?")));
     return out;
   });
   $("act-remote")?.addEventListener("click", () => scan("remote"));
@@ -1426,11 +1443,14 @@ function renderActions(hex, view, here, d) {
   const skim = (mode) => run(async () => {
     const need = STATE.ship_constants.fuel_tank_tons - STATE.fuel_tons;
     const out = await api("/api/action/skim", { method: "POST", body: JSON.stringify({ tons: need, mode }) });
-    out._msg = T.skimDone(out.plan.passes, num(out.plan.tons_skimmed), out.plan.processing_days);
+    out._msg = mode === "ice"
+      ? T.iceDone(num(out.plan.tons_skimmed), out.plan.processing_days)
+      : T.skimDone(out.plan.passes, num(out.plan.tons_skimmed), out.plan.processing_days);
     return out;
   });
   $("act-skim")?.addEventListener("click", () => skim("deep"));
   $("act-skim-safe")?.addEventListener("click", () => skim("safe"));
+  $("act-ice")?.addEventListener("click", () => skim("ice"));
   $("act-shortrange")?.addEventListener("click", () => run(async () => {
     const out = await api("/api/action/shortrange", { method: "POST", body: JSON.stringify({}) });
     const found = out.objects.map((o) => o.desc || o.kind).join("; ") || T.srNothing;
