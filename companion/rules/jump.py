@@ -39,6 +39,16 @@ def distance_pc(a: tuple[int, int], b: tuple[int, int]) -> int:
     return (abs(aq - bq) + abs(ar - br) + abs(as_ - bs)) // 2
 
 
+def neighbors_world(p: tuple[int, int]) -> list[tuple[int, int]]:
+    """6 hexow sasiadujacych (1 pc) w world-space — do zejscia z kursu przy misjumpie."""
+    q, r, _ = _cube(p)
+    out = []
+    for dq, dr in ((1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)):
+        nq, nr = q + dq, r + dr
+        out.append((nq, nr + (nq - (nq % 2)) // 2))
+    return out
+
+
 @dataclass
 class JumpPlan:
     parsecs: int

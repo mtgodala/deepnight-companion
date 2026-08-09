@@ -149,6 +149,9 @@ const PL = {
   defectSystem: "System", defectSystemPh: "np. fuel_processors, m_drive, sensors, hull",
   defectKind: "Typ", defectNote: "Notatka (opcjonalnie)", add: "Dodaj",
   waitBtn: "Postój 7 dni — odpoczynek/badania w bieżącym systemie (+SI z pobytu, B3 p.74)",
+  sweepBtn: "Security sweep — pełne przeszukanie statku (2D×30 min, Easy 4+, B3 p.64)",
+  sweepOk: (min) => `Sweep zakończony rzetelnie (${min} min) — problemy nieukryte zostałyby znalezione (B3 p.65).`,
+  sweepFail: (min) => `Sweep niedbały (${min} min) — wynik niemiarodajny, można powtórzyć.`,
   noteBtn: "Szybki wpis do dziennika okrętowego",
   waitDone: (date, su) => `Postój 7 dni. Data: ${date}, SU: ${su}`,
   noteDlgTitle: "Wpis do logu okrętowego", noteText: "Treść wpisu", noteTextDlgPh: "co się wydarzyło...",
@@ -199,6 +202,12 @@ const PL = {
   jumpWord: "Skacz",
   courseDone: (pc, sec, hex, date) => `Odcinek kursu wykonany: ${pc} pc do ${sec} ${hex}. Data: ${date}`,
   jumpDone: (pc, fuel, date) => `Skok wykonany: ${pc} pc, -${fuel} t. Data: ${date}`,
+  arrivalHdr: "Sekwencja przybycia:",
+  posFix: (min, ok) => ok
+    ? `Positional fix (routine, ${min} min): pozycja potwierdzona (B3 p.73)`
+    : `Positional fix (routine, ${min} min): ⚠ DANE NIE ZGADZAJĄ SIĘ Z OCZEKIWANYMI (B3 p.74)`,
+  autoPassive: (a, b, min) => `Automatyczny survey pasywny przy wejściu (${min} min): SI ${a} → ${b} (B3 p.73)`,
+  misjumpMsg: (sec, hex, days) => `MISJUMP — wyjście ze skoku w ${sec} ${hex}; korekta kursu ${days} dni [HR]`,
   scanGain: (g) => ` (${ICO_DICE} przyrost: ${g})`, timeWord: "czas",
   noProgress: (best) => ` — bez postępu: liczy się tylko NAJWIĘKSZY pojedynczy przyrost (B3 p.73), a dotychczasowy najlepszy sweep dał +${best}. SI podniesie mocniejszy wynik albo pobyt w systemie (+1 co ~6 dni, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passów, +${t} t, przetwarzanie ${d} dnia`,
@@ -208,7 +217,8 @@ const PL = {
   srNothing: "nic nie znaleziono",
   /* dziennik */
   KIND: { init: "START", scan: "SKAN", jump: "SKOK", skim: "PALIWO",
-    wait: "POSTÓJ", note: "WPIS", undo: "COFNIĘCIE", edit: "KOREKTA", shortrange: "SWEEP" },
+    wait: "POSTÓJ", note: "WPIS", undo: "COFNIĘCIE", edit: "KOREKTA",
+    shortrange: "SWEEP", security: "OCHRONA" },
   /* undo */
   undoConfirmTitle: "Cofnij ostatnią akcję",
   undoConfirmBody: "Pozycja, paliwo, czas i SI wrócą do stanu sprzed akcji. Wpis o cofnięciu trafi do dziennika.",
@@ -327,6 +337,9 @@ const EN = {
   defectSystem: "System", defectSystemPh: "e.g. fuel_processors, m_drive, sensors, hull",
   defectKind: "Kind", defectNote: "Note (optional)", add: "Add",
   waitBtn: "Hold 7 days — rest/research in the current system (+SI from dwelling, B3 p.74)",
+  sweepBtn: "Security sweep — full search of the ship (2D×30 min, Easy 4+, B3 p.64)",
+  sweepOk: (min) => `Diligent sweep (${min} min) — any problem not extremely well hidden would be found (B3 p.65).`,
+  sweepFail: (min) => `Sloppy sweep (${min} min) — result inconclusive, may be repeated.`,
   noteBtn: "Quick entry in the ship's log",
   waitDone: (date, su) => `Held for 7 days. Date: ${date}, SU: ${su}`,
   noteDlgTitle: "Ship's log entry", noteText: "Entry text", noteTextDlgPh: "what happened...",
@@ -375,6 +388,12 @@ const EN = {
   jumpWord: "Jump",
   courseDone: (pc, sec, hex, date) => `Course leg executed: ${pc} pc to ${sec} ${hex}. Date: ${date}`,
   jumpDone: (pc, fuel, date) => `Jump executed: ${pc} pc, -${fuel} t. Date: ${date}`,
+  arrivalHdr: "Arrival sequence:",
+  posFix: (min, ok) => ok
+    ? `Positional fix (routine, ${min} min): position confirmed (B3 p.73)`
+    : `Positional fix (routine, ${min} min): ⚠ DATA DOES NOT MATCH EXPECTED (B3 p.74)`,
+  autoPassive: (a, b, min) => `Automatic passive survey on arrival (${min} min): SI ${a} → ${b} (B3 p.73)`,
+  misjumpMsg: (sec, hex, days) => `MISJUMP — emerged in ${sec} ${hex}; course correction ${days} days [HR]`,
   scanGain: (g) => ` (${ICO_DICE} gain: ${g})`, timeWord: "time",
   noProgress: (best) => ` — no progress: only the LARGEST single increase counts (B3 p.73), and the best sweep so far gave +${best}. SI will rise from a stronger result or from dwelling in-system (+1 per ~6 days, B3 p.74).`,
   skimDone: (p, t, d) => `Skimming: ${p} passes, +${t} t, processing ${d} days`,
@@ -383,7 +402,8 @@ const EN = {
   srMsg: (roll, near, days, found) => `${ICO_DICE} 2D+DM = ${roll} (nearest star ${near} pc) · sweep ${days} days → ${found}`,
   srNothing: "nothing found",
   KIND: { init: "START", scan: "SCAN", jump: "JUMP", skim: "FUEL",
-    wait: "HOLD", note: "NOTE", undo: "UNDO", edit: "EDIT", shortrange: "SWEEP" },
+    wait: "HOLD", note: "NOTE", undo: "UNDO", edit: "EDIT",
+    shortrange: "SWEEP", security: "SECURITY" },
   undoConfirmTitle: "Undo last action",
   undoConfirmBody: "Position, fuel, time and SI will revert to the state before the action. An undo entry goes to the log.",
   undoWord: "Undo", undoDone: (a) => `↩ undone: ${a}`,
@@ -442,6 +462,7 @@ const EN_SRV_NOTES = [
   [/^Zbiorniki pe/, "Tanks are full"],
   [/^PALIWO 0:/, "FUEL 0: tanks dry - reactor has no reserve (B2: 8 weeks of operation)"],
   [/^Kometa wyczerpana/, "Comet exhausted - it was good for a single refuelling (B3 p.76)"],
+  [/^MISJUMP:/, "MISJUMP: emerged off-course; course corrected; Erosion of Capabilities check advised (B3 p.56) [HR]"],
   [/^Brak znanej komety/, "No known comet/ice body in this hex - run Short-Range Detection first (B3 p.75)"],
   [/^Brak potwierdzonego gazowego olbrzyma/, "No confirmed gas giant in this system (requires SI 5+ and a GG present)"],
   [/^Brak akcji do cofni/, "No action to undo"],
@@ -1101,6 +1122,43 @@ function renderArrows() {
   }
 }
 
+/* animacja skoku: warp z promienistych smug (losowe per skok — czysta dekoracja) */
+function playJumpFx() {
+  const ov = $("jump-overlay");
+  const svg = ov.querySelector(".warp");
+  if (svg && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    let l = "";
+    for (let i = 0; i < 110; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r0 = 30 + Math.random() * 130, r1 = r0 + 60 + Math.random() * 380;
+      l += `<line x1="${(Math.cos(a) * r0).toFixed(0)}" y1="${(Math.sin(a) * r0).toFixed(0)}"` +
+        ` x2="${(Math.cos(a) * r1).toFixed(0)}" y2="${(Math.sin(a) * r1).toFixed(0)}"` +
+        ` stroke-width="${(0.6 + Math.random() * 1.6).toFixed(1)}"` +
+        ` opacity="${(0.2 + Math.random() * 0.6).toFixed(2)}"/>`;
+    }
+    svg.innerHTML = `<g class="warp-g">${l}</g>`;
+  }
+  ov.classList.remove("play"); void ov.offsetWidth; ov.classList.add("play");
+  setTimeout(() => ov.classList.remove("play"), 2900);
+}
+
+/* sekwencja przybycia po skoku: positional fix + auto-survey + misjump */
+function arrivalMsg(out) {
+  const a = out.arrival;
+  if (!a) return "";
+  const rows = [`<div class="dim" style="margin-top:6px">${T.arrivalHdr}</div>`];
+  if (out.jump_check) rows.push(fmtCheck(out.jump_check));
+  if (a.misjump)
+    rows.push(`<div class="warn">${ICO_WARN} ${T.misjumpMsg(a.misjump.actual.sector,
+      a.misjump.actual.hex, a.misjump.drift_days)}</div>`);
+  if (a.positional)
+    rows.push(`<div class="${a.positional.confirmed ? "dim" : "warn"}">` +
+      `${T.posFix(a.positional.minutes, a.positional.confirmed)}</div>`);
+  if (a.passive)
+    rows.push(`<div class="dim">${T.autoPassive(a.passive.si_before, a.passive.si_after, a.passive.minutes)}</div>`);
+  return rows.join("");
+}
+
 /* ping skanu na hexie (sprzatany przez re-render mapy lub catch w run()) */
 function showScanPing(hex) {
   document.getElementById("scan-ping-g")?.remove();
@@ -1250,7 +1308,18 @@ function renderStats() {
 function renderShipActions() {
   $("ship-actions").innerHTML = `
     <button id="ship-wait">${T.waitBtn}</button>
+    <button id="ship-sweep">${T.sweepBtn}</button>
     <button id="ship-note">${T.noteBtn}</button>`;
+  $("ship-sweep").addEventListener("click", async () => {
+    try {
+      const out = await api("/api/action/security_sweep", { method: "POST" });
+      $("ship-result").innerHTML = fmtCheck(out.check) +
+        (out.check.success ? T.sweepOk(out.minutes) : T.sweepFail(out.minutes)) +
+        trNotes(out.notes).map((n) => `<div class="warn">${ICO_WARN} ${n}</div>`).join("");
+      recordRoll({ ...out, _msg: "" });
+      await refreshState();
+    } catch (e) { $("ship-result").innerHTML = `<span class="warn">✖ ${T.trNoteSrv(e.message)}</span>`; }
+  });
   $("ship-wait").addEventListener("click", async () => {
     try {
       const out = await api("/api/action/wait", { method: "POST", body: JSON.stringify({ days: 7 }) });
@@ -1423,21 +1492,22 @@ function renderActions(hex, view, here, d) {
     run(async () => {
       const out = await api("/api/action/jump", { method: "POST",
         body: JSON.stringify({ sector: courseLeg.sector, hex: courseLeg.hex }) });
-      const ov = $("jump-overlay");
-      ov.classList.remove("play"); void ov.offsetWidth; ov.classList.add("play");
-      setTimeout(() => ov.classList.remove("play"), 2300);
-      out._msg = T.courseDone(out.plan.parsecs, courseLeg.sector, courseLeg.hex, out.date_imperial);
-      if (courseLeg.sector !== CUR_SECTOR) { SELECTED = null; await loadSector(courseLeg.sector); }
+      playJumpFx();
+      out._msg = T.courseDone(out.plan.parsecs, out.position.sector, out.position.hex,
+        out.date_imperial) + arrivalMsg(out);
+      /* po misjumpie statek jest gdzie indziej niz planowano */
+      if (out.position.sector !== CUR_SECTOR) { SELECTED = out.position.hex; await loadSector(out.position.sector); }
+      else SELECTED = out.position.hex;
       return out;
     });
   });
   $("act-jump")?.addEventListener("click", () => run(async () => {
     const out = await api("/api/action/jump", { method: "POST", body: JSON.stringify({ sector: CUR_SECTOR, hex }) });
-    /* animacja przejścia przez jumpspace */
-    const ov = $("jump-overlay");
-    ov.classList.remove("play"); void ov.offsetWidth; ov.classList.add("play");
-    setTimeout(() => ov.classList.remove("play"), 2300);
-    out._msg = T.jumpDone(out.plan.parsecs, num(out.plan.fuel_required), out.date_imperial);
+    playJumpFx();
+    out._msg = T.jumpDone(out.plan.parsecs, num(out.plan.fuel_required), out.date_imperial) +
+      arrivalMsg(out);
+    if (out.position.sector !== CUR_SECTOR) { SELECTED = out.position.hex; await loadSector(out.position.sector); }
+    else SELECTED = out.position.hex;
     return out;
   }));
   const skim = (mode) => run(async () => {

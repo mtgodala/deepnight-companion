@@ -102,7 +102,7 @@ Progi detekcji (scan points, patrz §2): gwiazda auto; brown dwarf 4; large GG 6
 
 **B3 wprost NIE MA:** liczb paliwa (⇒ §0), tabeli misjumpu (⇒ core), czasu skoku poza „usual 7 days" (B3 p.17).
 
-**Silnik:** skok = wybór celu w zasięgu ≤4 pc → walidacja paliwa (6 750 t × parseki) → czas ~168h (opcjonalnie 148+6D h) → misjump check wg core MGT2 przy DM-ach:
+**Silnik (od 2026-08-08):** skok = walidacja zasięgu/paliwa → gdy `env_flags` dają DM ≠ 0: **check Average (8+) na ECEI + env_dm**; fail ⇒ **misjump [HR]** (tabela w core, nie w B3): wyjście 1 hex od celu w losowym kierunku + 1D dni korekty; total ≤ 2 ⇒ dodatkowo defekt `j_drive`. Czysta przestrzeń = bez rzutu. **Sekwencja przybycia (auto):** Post-Jump Primary Easy(4+) CEI (p.63) → positional check Routine D3 min, misjump wykryty od razu (p.73-74) → automatyczny passive survey +1 SI, jeśli hex niepusty (p.73). Security sweep: osobna akcja 2D×30 min, Easy(4+) CEI/DEI Ops (p.64-65). DM-y środowiskowe:
 
 | Okoliczność | DM (B3 p.11) |
 |---|---|

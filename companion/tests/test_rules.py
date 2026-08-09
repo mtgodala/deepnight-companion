@@ -292,3 +292,25 @@ def test_ice_refuel_check_flight_division():
     c = checks.ice_refuel_check(ship, rng=random.Random(4))
     assert c.target == 8
     assert c.page == "B3 p.70"
+
+
+def test_jump_check_env_dm_and_page():
+    ship = {"cei": 7, "ceim": 0, "dei": {}}
+    c = checks.jump_check(ship, -4, rng=random.Random(5))
+    assert ("warunki srodowiskowe", -4) in c.dms
+    assert c.target == 8
+
+
+def test_security_sweep_easy():
+    ship = {"cei": 7, "ceim": 0, "dei": {"operations": 9}}
+    c = checks.security_sweep_check(ship, rng=random.Random(6))
+    assert c.target == 4
+    assert c.page == "B3 p.64-65"
+
+
+def test_neighbors_world_all_at_1pc():
+    p = (100, 200)
+    ns = jump.neighbors_world(p)
+    assert len(ns) == 6
+    assert all(jump.distance_pc(p, n) == 1 for n in ns)
+    assert len(set(ns)) == 6

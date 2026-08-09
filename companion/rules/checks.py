@@ -91,6 +91,28 @@ def post_jump_check(ship: dict, rng: random.Random | None = None) -> CheckResult
                        page="B3 p.63")
 
 
+def jump_check(ship: dict, env_dm: int,
+               rng: random.Random | None = None) -> CheckResult:
+    """Skok w trudnych warunkach: Average (8+) na ECEI z DM srodowiskowym.
+
+    Wykonywany TYLKO gdy env_dm != 0 (mglawica/protogwiazda/JIZ, B3 p.11-12);
+    skok w czystej przestrzeni z rafinowanym paliwem = rutyna, bez rzutu.
+    Skutki porazki (misjump) sa HR — tabela misjumpu jest w core MGT2,
+    nie w B3; abstrakcja statku: fail => zejscie z kursu o 1 hex + 1D dni,
+    total <= 2 => dodatkowo defekt j_drive.
+    """
+    return CheckResult("Skok w zaburzonej przestrzeni", roll_2d(rng),
+                       [ecei_dm(ship), ("warunki srodowiskowe", env_dm)], 8,
+                       page="B3 p.11-12")
+
+
+def security_sweep_check(ship: dict, rng: random.Random | None = None) -> CheckResult:
+    """Pelny security sweep: Easy (4+) na CEI lub DEI oddzialu ochrony
+    (Operations/Tactical) — bierzemy wiekszy DM (B3 p.64-65)."""
+    return CheckResult("Security sweep", roll_2d(rng),
+                       [best_crew_dm(ship, "operations")], 4, page="B3 p.64-65")
+
+
 def skim_check(ship: dict, mode: str, rng: random.Random | None = None) -> CheckResult:
     """Skimming: abstrakcja Mission na DEI Flight (B3 p.68); glebokie warstwy DM-2.
 

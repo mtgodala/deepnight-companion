@@ -541,9 +541,24 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
   background: radial-gradient(ellipse at center, #101c38 0%, #05070d 65%);
   display: flex; align-items: center; justify-content: center;
 }
-#jump-overlay.play { animation: jumpfade 2.2s ease-in-out forwards; pointer-events: all; }
+#jump-overlay.play { animation: jumpfade 2.8s ease-in-out forwards; pointer-events: all; }
 @keyframes jumpfade {
-  0% { opacity: 0; } 18% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; }
+  0% { opacity: 0; } 14% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
+}
+/* warp: promieniste smugi gwiazd generowane w JS przy kazdym skoku */
+#jump-overlay .warp {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  stroke: #a9cdff; stroke-linecap: round;
+}
+[data-theme="paper"] #jump-overlay .warp { stroke: #6d5626; }
+#jump-overlay.play .warp-g {
+  animation: warpzoom 2.7s cubic-bezier(.55, 0, .9, .55) forwards;
+  transform-origin: 0px 0px;
+}
+@keyframes warpzoom {
+  from { transform: scale(.12); opacity: 0; }
+  22% { opacity: 1; }
+  to { transform: scale(2.6); opacity: 0; }
 }
 #jump-overlay .jump-text {
   color: var(--g-100); font-size: 20px; letter-spacing: 6px; text-transform: uppercase;
@@ -581,6 +596,7 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
 
 @media (prefers-reduced-motion: reduce) {
   .trail-seg, .ship-glyph .engine, .ship-ring, .ns-pulse, #jump-overlay.play, #jump-overlay .streaks,
+  #jump-overlay.play .warp-g,
   .scan-ping, .skel, dialog[open], #journal-screen .panel, #rolls-panel,
   #hex-panel.fade-swap #hex-chips, #hex-panel.fade-swap #hex-desc, #hex-panel.fade-swap #hex-uwp,
   #hex-panel.fade-swap #hex-bodies, #hex-panel.fade-swap #hex-actions {

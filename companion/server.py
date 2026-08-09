@@ -550,6 +550,15 @@ def action_scan(body: ScanBody) -> dict:
                                 res.si_after)}
 
 
+def world_to_sector_hex(w: tuple[int, int]) -> dict | None:
+    """World-space -> {sector, hex}, o ile sektor istnieje w danych."""
+    sx, sy = w[0] // 32, w[1] // 40
+    name = _by_coords.get((sx, sy))
+    if not name:
+        return None
+    return {"sector": name, "hex": f"{w[0] - sx * 32 + 1:02d}{w[1] - sy * 40 + 1:02d}"}
+
+
 @app.post("/api/action/jump")
 def action_jump(body: JumpBody) -> dict:
     snapshot("jump")
@@ -564,37 +573,93 @@ def action_jump(body: JumpBody) -> dict:
     if not (plan.range_ok and plan.fuel_ok):
         raise HTTPException(400, "; ".join(plan.notes) or "skok niemozliwy")
 
+    # skok w zaburzonej przestrzeni (mglawica/protogwiazda, B3 p.11-12):
+    # check Average(8+) z env_dm; fail => misjump [HR - tabela w core MGT2]
+    jump_chk = None
+    misjump = None
+    dest = {"sector": body.sector, "hex": body.hex}
+    if plan.env_dm:
+        jump_chk = checks.jump_check(s, plan.env_dm)
+        if not jump_chk.success:
+            cands = [c for c in (world_to_sector_hex(n)
+                                 for n in jump.neighbors_world(b)) if c]
+            drift_days = roll("1D")
+            if cands:
+                dest = cands[(roll("1D") - 1) % len(cands)]
+            misjump = {"intended": {"sector": body.sector, "hex": body.hex},
+                       "actual": dict(dest), "drift_days": drift_days}
+            if jump_chk.total <= 2:
+                s.setdefault("defects", []).append(
+                    {"system": "j_drive", "note": "misjump - przeciazenie napedu"})
+
     s["fuel_tons"] -= plan.fuel_required
-    s["position"] = {"sector": body.sector, "hex": body.hex}
-    s.setdefault("trail", []).append({"sector": body.sector, "hex": body.hex})
+    s["position"] = dict(dest)
+    s.setdefault("trail", []).append(dict(dest))
     # reset licznika pobytu w nowym hexie
-    notes = advance_time(s, plan.time_hours, dwelling=False)
+    hours = plan.time_hours + (misjump["drift_days"] * 24 if misjump else 0)
+    notes = advance_time(s, hours, dwelling=False)
+    if misjump:
+        notes.append(f"MISJUMP: wyjscie ze skoku w {dest['sector']} {dest['hex']} "
+                     f"zamiast {body.sector} {body.hex}; korekta {misjump['drift_days']} dni; "
+                     "zalecany check Erosion of Capabilities (B3 p.56) [HR]")
     save_ship(s)
 
-    rec = get_system_record(body.sector, body.hex)
+    rec = get_system_record(dest["sector"], dest["hex"])
     sv = survey_state()
-    key = hex_key(body.sector, body.hex)
+    key = hex_key(dest["sector"], dest["hex"])
     # Post-Jump Primary: Easy (4+) na ECEI (B3 p.63) - rzuca silnik
     pj = checks.post_jump_check(s)
-    arrival_si = max(baseline_si(body.sector, body.hex, sv), 3 if pj.success else 2)
+    arrival_si = max(baseline_si(dest["sector"], dest["hex"], sv), 3 if pj.success else 2)
     if not pj.success:
         notes.append("Post-Jump Primary niepełny: dane systemu ograniczone, "
                      "powtórz procedury sensorowe (B3 p.63)")
+    # positional check Routine: D3 minut; misjump wykryty niemal od razu (B3 p.73-74)
+    positional = {"kind": "routine", "minutes": roll("D3"),
+                  "confirmed": misjump is None}
+    # automatyczny survey pasywny przy wejsciu do systemu (B3 p.73: "a system
+    # survey is normally performed immediately"); pusty hex - nie ma czego skanowac
+    passive = None
+    if not rec.get("empty"):
+        best = sv["best_sweep"].get(key, 0)
+        res = survey.apply_sweep(arrival_si, "passive", best_sweep_gain=best)
+        sv["best_sweep"][key] = max(best, res.gain)
+        passive = {"si_before": res.si_before, "si_after": res.si_after,
+                   "minutes": res.time_amount}
+        arrival_si = res.si_after
     sv["si"][key] = arrival_si
     save_survey(sv)
 
-    log_event("jump", f"Skok {org['sector']} {org['hex']} -> {body.sector} {body.hex} "
-                      f"({plan.parsecs} pc, {plan.fuel_required} t paliwa, ~7 dni)",
+    log_event("jump", f"Skok {org['sector']} {org['hex']} -> {dest['sector']} {dest['hex']} "
+                      f"({plan.parsecs} pc, {plan.fuel_required} t paliwa, ~7 dni)"
+                      + (" MISJUMP" if misjump else ""),
               {"parsecs": plan.parsecs, "fuel": plan.fuel_required,
-               "env_dm": plan.env_dm})
+               "env_dm": plan.env_dm, "misjump": bool(misjump)})
     out = {"plan": plan.__dict__, "position": s["position"],
            "fuel_tons": s["fuel_tons"], "date_imperial": s["date_imperial"],
            "notes": notes, "check": pj.as_dict(),
+           "jump_check": jump_chk.as_dict() if jump_chk else None,
+           "arrival": {"positional": positional, "passive": passive,
+                       "misjump": misjump},
            "arrival_view": player_view(rec, arrival_si)}
     if rec.get("empty"):
         out["empty_hex"] = True
         out["notes"].append("Pusty hex: dostepna akcja Short-Range Detection (B3 p.75)")
     return out
+
+
+@app.post("/api/action/security_sweep")
+def action_security_sweep() -> dict:
+    """Pelny security sweep statku: 2Dx30 min, Easy (4+) (B3 p.64-65)."""
+    snapshot("security")
+    s = ship()
+    chk = checks.security_sweep_check(s)
+    minutes = roll("2D") * 30
+    notes = advance_time(s, minutes / 60)
+    save_ship(s)
+    log_event("security", f"Security sweep ({minutes} min): "
+                          f"{'rzetelny' if chk.success else 'niedbaly'}")
+    return {"minutes": minutes, "check": chk.as_dict(), "notes": notes,
+            "date_imperial": s["date_imperial"]}
 
 
 @app.post("/api/action/skim")
