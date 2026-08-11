@@ -212,9 +212,13 @@ select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23675838' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 #map-wrap {
-  flex: 1; position: relative; overflow: hidden; background: var(--g-950);
+  flex: 1; position: relative; overflow: hidden;
+  /* malowany starfield z Book 1 pod hexami; nieznane hexy sa polprzezroczyste,
+     wiec gwiazdy przeswituja — czysta dekoracja, zero informacji o grze */
+  background: url("art/starfield.jpg") center / cover no-repeat var(--g-950);
   user-select: none; -webkit-user-select: none;   /* klik-przeciągnięcie nie zaznacza numerów hexów */
 }
+[data-theme="paper"] #map-wrap { background: var(--g-950); }
 /* winieta: głębia bez zasłaniania interakcji */
 #map-wrap::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
@@ -231,7 +235,15 @@ select {
 /* Panel boczny: szklany look (glow + cien) w layoutcie kolumnowym.
    UWAGA: wariant overlay (panel NAD mapa) przetestowany i odrzucony —
    hexy prawego skraju mapy byly nieklikalne pod panelem (plan 1.1, fallback). */
-#side-col { width: 400px; border-left: 1px solid var(--g-700); overflow-y: auto; background: var(--g-900); }
+/* boczna kolumna na subtelnej teksturze "tech-grid" ze stron Book 2 */
+#side-col {
+  width: 400px; border-left: 1px solid var(--g-700); overflow-y: auto;
+  background:
+    linear-gradient(color-mix(in srgb, var(--g-900) 94%, transparent),
+                    color-mix(in srgb, var(--g-900) 94%, transparent)),
+    url("art/tex-grid.jpg") center / 640px repeat var(--g-900);
+}
+[data-theme="paper"] #side-col { background: var(--g-900); }
 .panel {
   background: color-mix(in srgb, var(--g-850) 92%, transparent);
   padding: 16px; margin: 8px;
@@ -256,8 +268,18 @@ select {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
 
-#init-screen { display: flex; align-items: center; justify-content: center; flex: 1; }
-#init-screen .panel { max-width: 460px; }
+/* ekran startowy = "okładka" — malowany art z Book 1 (Deepnight Legacy) */
+#init-screen {
+  display: flex; align-items: center; justify-content: center; flex: 1;
+  background:
+    linear-gradient(rgba(5, 7, 13, .38), rgba(5, 7, 13, .74)),
+    url("art/hero.jpg") center / cover no-repeat var(--g-900);
+}
+#init-screen .panel {
+  max-width: 460px;
+  background: color-mix(in srgb, var(--g-850) 82%, transparent);
+  backdrop-filter: blur(8px);
+}
 #init-screen h2 { font-size: 14px; }
 
 /* ------------------------- panel systemu / statku ----------------------- */
@@ -377,7 +399,8 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
 .defect-row { padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--g-700); color: var(--g-200); }
 
 /* ------------------------------- mapa: svg ------------------------------ */
-.hex { fill: var(--g-950); stroke: #101828; stroke-width: .4; cursor: pointer; }
+.hex { fill: color-mix(in srgb, var(--g-950) 62%, transparent); stroke: #101828; stroke-width: .4; cursor: pointer; }
+[data-theme="paper"] .hex { fill: var(--g-950); }
 .hex:hover { stroke: var(--accent); stroke-width: 1; }
 .hex.selected { stroke: var(--accent); stroke-width: 1.4; }
 .hex.preview { opacity: .3; }
@@ -489,7 +512,15 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
 }
 
 /* ------------------------------ dziennik -------------------------------- */
-#journal-screen { flex: 1; overflow-y: auto; }
+/* dziennik na "stronie podręcznika" — oryginalna tekstura tła stron (trajektorie) */
+#journal-screen {
+  flex: 1; overflow-y: auto;
+  background:
+    linear-gradient(color-mix(in srgb, var(--g-900) 93%, transparent),
+                    color-mix(in srgb, var(--g-900) 96%, transparent)),
+    url("art/tex-nav.jpg") center / 920px repeat;
+}
+[data-theme="paper"] #journal-screen { background: var(--g-900); }
 #journal-list { max-height: 60vh; overflow-y: auto; margin: 16px 0; }
 .log-row { padding: 8px; border-bottom: 1px solid var(--g-700); font-size: 13px; color: var(--g-200); }
 .log-row .k {
@@ -538,7 +569,9 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
 /* --------------------------- animacja skoku ----------------------------- */
 #jump-overlay {
   position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0;
-  background: radial-gradient(ellipse at center, #101c38 0%, #05070d 65%);
+  background:
+    radial-gradient(ellipse at center, rgba(16, 28, 56, .5) 0%, rgba(5, 7, 13, .9) 70%),
+    url("art/starfield.jpg") center / cover no-repeat #05070d;
   display: flex; align-items: center; justify-content: center;
 }
 #jump-overlay.play { animation: jumpfade 2.8s ease-in-out forwards; pointer-events: all; }
