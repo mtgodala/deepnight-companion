@@ -314,3 +314,19 @@ def test_neighbors_world_all_at_1pc():
     assert len(ns) == 6
     assert all(jump.distance_pc(p, n) == 1 for n in ns)
     assert len(set(ns)) == 6
+
+
+# --- regresja: stale liczbowe w tabelach (Vilaakasii 1824, 2026-08-22) ---
+
+def test_roll_accepts_integer_constants():
+    """Tabele B3 mieszaja kosci ze stalymi (extremely sparse -> "1" cialo)."""
+    assert dice.roll("1") == 1
+    assert dice.roll("0") == 0
+    assert dice.roll("12") == 12
+    assert dice.roll_detail("1") == (1, [])
+
+
+def test_sysgen_extremely_sparse_hex_generates():
+    """Hex, ktorego seed trafia w extremely_sparse ("1"), nie moze rzucac 500."""
+    rec = sysgen.generate_system("Vilaakasii", "1824", star_known=True)
+    assert rec["bodies_detail"] is not None

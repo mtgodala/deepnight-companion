@@ -104,6 +104,7 @@ def snapshot(action: str) -> None:
         "action": action,
         "ship": _read_json(STATE / "ship.json", None),
         "survey": _read_json(STATE / "survey.json", None),
+        "crew": _read_json(STATE / "crew.json", None),
     }
     existing = sorted(UNDO_DIR.glob("*.json"))
     n = int(existing[-1].stem.split("-")[0]) + 1 if existing else 1
@@ -141,7 +142,8 @@ def sector_slug(name: str) -> str:
 
 # ------------------------------------------------------------------- dziennik
 
-def log_event(kind: str, text: str, data: dict | None = None) -> None:
+def log_event(kind: str, text: str, data: dict | None = None,
+              gm_only: bool = False) -> None:
     SHIP_LOG_DIR.mkdir(parents=True, exist_ok=True)
     s = _read_json(STATE / "ship.json", {})
     rec = {
@@ -151,6 +153,8 @@ def log_event(kind: str, text: str, data: dict | None = None) -> None:
         "text": text,
         "data": data or {},
     }
+    if gm_only:
+        rec["gm_only"] = True
     with (SHIP_LOG_DIR / "log.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
@@ -750,6 +754,9 @@ def action_undo() -> dict:
         _write_json(STATE / "ship.json", snap["ship"])
     if snap["survey"] is not None:
         _write_json(STATE / "survey.json", snap["survey"])
+    # starsze snapshoty nie maja klucza "crew" — wtedy crew.json zostaje bez zmian
+    if "crew" in snap:
+        _write_json(STATE / "crew.json", snap["crew"] or {"people": []})
     log_event("undo", f"Cofnieto akcje: {snap['action']} (korekta przy stole)")
     return {"undone": snap["action"], "state": ship()}
 
@@ -903,14 +910,106 @@ def toggle_bookmark(body: BookmarkBody) -> dict:
 
 
 @app.get("/api/journal")
-def get_journal(limit: int = 200) -> list[dict]:
-    return read_log(limit)
+def get_journal(limit: int = 200,
+                x_gm_token: str | None = Header(default=None)) -> list[dict]:
+    rows = read_log(limit)
+    if is_gm(x_gm_token):
+        return rows
+    return [r for r in rows if not r.get("gm_only")]
 
 
 @app.post("/api/journal")
 def add_note(body: NoteBody) -> dict:
     log_event("note", body.text, {"author": body.author})
     return {"ok": True}
+
+
+# -------------------------------------------------------------- zaloga (crew)
+
+CREW_TEMPLATE = ROOT / "companion" / "data" / "crew_template.json"
+CREW_STATUSES = ("alive", "wounded", "dead", "missing")
+
+
+def crew_state() -> dict:
+    return _read_json(STATE / "crew.json", {"people": []})
+
+
+class CrewPersonBody(BaseModel):
+    slug: str                      # kebab-case, klucz osoby
+    name: str = ""                 # puste przy delete
+    node: str = ""                 # id stanowiska z crew_template.json
+    kind: str = "npc"              # npc | pc
+    status: str = "alive"          # alive | wounded | dead | missing
+    note: str = ""                 # player-safe
+    gm_note: str = ""              # tylko tryb GM
+    delete: bool = False
+    log_gm_only: bool = False      # wpis w dzienniku widoczny tylko dla GM
+
+
+@app.get("/api/crew")
+def get_crew(x_gm_token: str | None = Header(default=None)) -> dict:
+    """Drzewo stanowisk (szablon B2 s.42-45) + obsada imienna (state/crew.json).
+
+    Bez naglowka GM pola gm_* sa wyciete — jak wszedzie w companionie.
+    """
+    tpl = _read_json(CREW_TEMPLATE, {"nodes": []})
+    gm = is_gm(x_gm_token)
+    people = [p if gm else {k: v for k, v in p.items() if not k.startswith("gm_")}
+              for p in crew_state().get("people", [])]
+    return {"nodes": tpl["nodes"], "people": people, "gm": gm}
+
+
+@app.post("/api/crew/person")
+def crew_person(body: CrewPersonBody,
+                x_gm_token: str | None = Header(default=None)) -> dict:
+    """Upsert osoby na drzewie zalogi (otwarte przy stole, jak edycja statow).
+
+    Bez trybu GM: nie mozna usuwac, pole gm_note jest ignorowane (istniejace
+    zostaje), a wpis do dziennika zawsze jawny.
+    """
+    gm = is_gm(x_gm_token)
+    if body.delete and not gm:
+        raise HTTPException(403, "Usuwanie wymaga trybu GM (X-GM-Token)")
+    if not gm:
+        body.log_gm_only = False
+    if body.status not in CREW_STATUSES:
+        raise HTTPException(422, f"status musi byc jednym z {CREW_STATUSES}")
+    tpl = _read_json(CREW_TEMPLATE, {"nodes": []})
+    node_ids = {n["id"] for n in tpl["nodes"]}
+    if not body.delete and body.node not in node_ids:
+        raise HTTPException(422, "nieznane stanowisko (node)")
+    snapshot("crew")
+    st = crew_state()
+    people = st.setdefault("people", [])
+    idx = next((i for i, p in enumerate(people) if p["slug"] == body.slug), None)
+    if body.delete:
+        if idx is None:
+            raise HTTPException(404, "brak osoby o tym slugu")
+        removed = people.pop(idx)
+        log_event("crew", f"Zaloga: {removed.get('name', body.slug)} usunieto z ewidencji",
+                  gm_only=body.log_gm_only)
+    else:
+        old_gm_note = people[idx].get("gm_note", "") if idx is not None else ""
+        person = {"slug": body.slug, "name": body.name, "node": body.node,
+                  "kind": body.kind, "status": body.status, "note": body.note,
+                  "gm_note": body.gm_note if gm else old_gm_note}
+        if idx is None:
+            people.append(person)
+            log_event("crew", f"Zaloga: {body.name} — przydzial: {body.node}",
+                      gm_only=body.log_gm_only)
+        else:
+            old = people[idx]
+            people[idx] = person
+            changes = []
+            if old.get("node") != body.node:
+                changes.append(f"przydzial {old.get('node')} -> {body.node}")
+            if old.get("status") != body.status:
+                changes.append(f"status {old.get('status')} -> {body.status}")
+            log_event("crew", f"Zaloga: {body.name} — " +
+                      ("; ".join(changes) if changes else "aktualizacja wpisu"),
+                      gm_only=body.log_gm_only)
+    _write_json(STATE / "crew.json", st)
+    return {"ok": True, "people": len(people)}
 
 
 app.mount("/static", StaticFiles(directory=WEB), name="static")

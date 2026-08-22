@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
 <link rel="preload" href="/static/fonts/Exo2-600-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/Michroma-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/IBMPlexMono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/art/starfield.jpg" as="image">
 <link rel="stylesheet" href="/static/style.css">
@@ -48,10 +49,16 @@ document.documentElement.dataset.accent = localStorage.getItem("dn-accent") || "
   <button id="btn-accent" class="tab-btn" data-i18n-title="accentTip" title="Accent colour">●</button>
   <button id="btn-lang" class="tab-btn" title="Switch language / zmień język">PL</button>
   <button id="btn-undo" class="tab-btn" data-i18n-title="undoTitle" title="Undo the last action (table mistake correction)"><svg class="ico"><use href="#i-undo"/></svg><span data-i18n="undoBtn">undo</span></button>
+  <button id="btn-crew" class="tab-btn" data-i18n-title="crewBtnTip" title="Expedition crew tree (B2 p.42-45)"><svg class="ico"><use href="#i-crew"/></svg><span data-i18n="crewBtn">Crew</span></button>
   <button id="btn-journal" class="tab-btn"><svg class="ico"><use href="#i-book"/></svg><span data-i18n="journalBtn">Log</span></button>
 </div>
 
 <div id="init-screen" class="hidden">
+  <div class="hero-title">
+    <span class="t1">RSS Deepnight</span>
+    <span class="t2">Revelation</span>
+    <div class="pipe"></div>
+  </div>
   <div class="panel">
     <h2 data-i18n="initTitle">Campaign start</h2>
     <p data-i18n-html="initP">Companion has no ship state yet (<code>state/ship.json</code>).</p>
@@ -116,6 +123,18 @@ document.documentElement.dataset.accent = localStorage.getItem("dn-accent") || "
       <input id="note-text" data-i18n-placeholder="noteTextPh" placeholder="log entry...">
       <button id="note-add" data-i18n="noteAdd">Add entry</button>
     </div>
+  </div>
+</div>
+
+<div id="crew-screen" class="hidden">
+  <div class="panel">
+    <h2><span data-i18n="crewTitle">Expedition crew</span>
+        <span id="crew-summary" class="dim"></span>
+        <span class="spacer"></span>
+        <button id="crew-gm" class="tab-btn">GM…</button>
+        <button id="crew-close" class="tab-btn" data-i18n="journalClose">← map</button></h2>
+    <p id="crew-note" class="dim"></p>
+    <div id="crew-tree"></div>
   </div>
 </div>
 

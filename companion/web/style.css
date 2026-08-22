@@ -45,6 +45,30 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Etap 7: fonty "z wnętrza podręczników" — Michroma (nagłówki sekcji,
+   à la Eurostile Extended z B2/B3) + Anton (wielkie H1, skondensowany).
+   Oba mają natywny latin-ext (PL diakrytyki zweryfikowane). */
+@font-face {
+  font-family: "Michroma"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/Michroma-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Michroma"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/Michroma-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Anton"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/Anton-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Anton"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/Anton-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   /* skala szarości (tint niebieski ~222°) */
   --g-950: #070a12;   /* najgłębsze tło (mapa) */
@@ -75,51 +99,66 @@
   --radius: 6px;
   --font-display: "Exo 2", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", Consolas, "Cascadia Mono", ui-monospace, monospace;
+  /* Etap 7: warstwa "trade dress podręcznika" */
+  --font-tech: "Michroma", "Exo 2", "Segoe UI", sans-serif;      /* nagłówki sekcji */
+  --font-condensed: "Anton", "Arial Narrow", sans-serif;          /* wielkie H1 */
+  --orange: #ff8a45;            /* subheady à la B2/B3 (jaśniejszy pod dark) */
+  --band-bg: #1a2030;           /* band nagłówka tabel/stref (jak w MGT2) */
+  --band-fg: #eef2fb;
+  /* "rura" — stalowy walec spod nagłówków H1 książek, czysty CSS */
+  --steel-pipe: linear-gradient(180deg, #f2f3f5 0%, #c7ccd4 30%, #8f97a3 55%, #3a4150 78%, #141926 100%);
+  /* watermark: siatka heksów jak na stronach body B2/B3 (heropatterns, MIT) */
+  --hex-wm: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%238899bb' fill-opacity='0.07' fill-rule='evenodd'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/svg%3E");
   --map-star: #cfe0ff;          /* punkciki starfieldu (dekoracja) */
   --shadow-panel: 0 12px 40px rgba(0, 0, 0, .45);
   --shadow-dialog: 0 24px 64px rgba(0, 0, 0, .6);
 }
 
-/* motyw "paper chart" — kremowy papier, atramentowe hexy (trade dress map z książki).
+/* motyw "paper" = od Etapu 7 "strona podręcznika" — chłodna szarość stron
+   body B2/B3 (zamiast dawnego kremu "nav chart") + watermark heksów.
    Fog-of-war odwzorowany na atrament: im więcej wiecie, tym ciemniejszy wash. */
 [data-theme="paper"] {
-  --g-950: #f0e7d3;   /* mapa: papier */
-  --g-900: #e9deca;   /* tło strony */
-  --g-850: #f7f0df;   /* panele */
-  --g-800: #ece1c8;   /* chipy, inputy */
-  --g-750: #e2d5b6;   /* hover */
-  --g-700: #cfc0a0;   /* bordery */
-  --g-600: #a8946e;   /* bordery mocniejsze */
-  --g-500: #8a795a;   /* tekst trzeciorzędny */
-  --g-400: #675838;   /* tekst drugorzędny */
-  --g-200: #3a3020;   /* tekst podstawowy */
-  --g-100: #241c0e;   /* nagłówki */
+  --g-950: #dadce0;   /* mapa: papier */
+  --g-900: #e2e4e7;   /* tło strony */
+  --g-850: #eceef0;   /* panele */
+  --g-800: #dfe2e6;   /* chipy, inputy */
+  --g-750: #d3d7dc;   /* hover */
+  --g-700: #bfc4cc;   /* bordery */
+  --g-600: #9aa1ac;   /* bordery mocniejsze */
+  --g-500: #6f7683;   /* tekst trzeciorzędny */
+  --g-400: #4c525e;   /* tekst drugorzędny */
+  --g-200: #2c313b;   /* tekst podstawowy */
+  --g-100: #191d26;   /* nagłówki */
   --accent: #1f5f96;
   --accent-strong: #174a77;
   --ok: #1e7a4a;
   --warn: #a05f00;
   --bad: #b3261e;
-  --canon: #8a6d1a;
+  --canon: #7d6a24;
+  --orange: #cf4e12;  /* subhead orange z podręczników (druk) */
+  --band-bg: #262b36;
+  --band-fg: #f2f4f7;
+  --hex-wm: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23262c38' fill-opacity='0.06' fill-rule='evenodd'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/svg%3E");
   --star-M: #c04020; --star-K: #b06810; --star-G: #9c8500;
   --star-F: #82823a; --star-A: #4a4a4a; --star-B: #2c5f9e;
   --star-X: #6b5c40; --star-NS: #7a3fa0; --star-WD: #6d6d6d;
   --map-star: transparent;
-  --shadow-panel: 0 8px 24px rgba(90, 70, 30, .16);
-  --shadow-dialog: 0 16px 48px rgba(90, 70, 30, .3);
+  --shadow-panel: 0 8px 24px rgba(25, 30, 40, .14);
+  --shadow-dialog: 0 16px 48px rgba(25, 30, 40, .28);
 }
 [data-theme="paper"] .starfield, [data-theme="paper"] .neb { display: none; }
-[data-theme="paper"] .hex { stroke: #d9ccae; }
-[data-theme="paper"] .hex.si-1 { fill: #ebe0c8; } [data-theme="paper"] .hex.si-2 { fill: #e8dcc1; }
-[data-theme="paper"] .hex.si-3 { fill: #e5d8ba; } [data-theme="paper"] .hex.si-4 { fill: #e2d4b3; }
-[data-theme="paper"] .hex.si-5 { fill: #dfd0ac; } [data-theme="paper"] .hex.si-6 { fill: #dccca5; }
-[data-theme="paper"] .hex.si-7 { fill: #d9c89e; } [data-theme="paper"] .hex.si-8 { fill: #d6c497; }
-[data-theme="paper"] .hex.si-9 { fill: #d3c090; } [data-theme="paper"] .hex.si-10,
-[data-theme="paper"] .hex.si-11, [data-theme="paper"] .hex.si-12 { fill: #cfba86; }
-[data-theme="paper"] dialog::backdrop { background: rgba(70, 55, 25, .4); }
-[data-theme="paper"] #jump-overlay { background: radial-gradient(ellipse at center, #efe5cf 0%, #d8c9a4 65%); }
+[data-theme="paper"] .hex { stroke: #c6cad1; }
+[data-theme="paper"] .hex.si-1 { fill: #d4d7db; } [data-theme="paper"] .hex.si-2 { fill: #cfd2d7; }
+[data-theme="paper"] .hex.si-3 { fill: #cacdd3; } [data-theme="paper"] .hex.si-4 { fill: #c5c9cf; }
+[data-theme="paper"] .hex.si-5 { fill: #c0c4cb; } [data-theme="paper"] .hex.si-6 { fill: #bbc0c7; }
+[data-theme="paper"] .hex.si-7 { fill: #b6bbc3; } [data-theme="paper"] .hex.si-8 { fill: #b1b6bf; }
+[data-theme="paper"] .hex.si-9 { fill: #acb2bb; } [data-theme="paper"] .hex.si-10,
+[data-theme="paper"] .hex.si-11, [data-theme="paper"] .hex.si-12 { fill: #a5abb5; }
+[data-theme="paper"] dialog::backdrop { background: rgba(35, 40, 50, .4); }
+[data-theme="paper"] #jump-overlay { background: radial-gradient(ellipse at center, #e6e8eb 0%, #c6cad1 65%); }
 [data-theme="paper"] #jump-overlay .jump-text { color: var(--g-100); text-shadow: none; }
 [data-theme="paper"] #jump-overlay .streaks {
-  background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(60, 45, 15, .1) 46px 48px);
+  background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(40, 46, 58, .1) 46px 48px);
 }
 
 /* akcenty — po motywach, żeby wygrywały kolejnością */
@@ -141,13 +180,21 @@ code { color: var(--warn); font-size: 12px; }
 /* ------------------------------- topbar --------------------------------- */
 #topbar {
   display: flex; gap: 16px; align-items: center;
-  padding: 8px 16px; background: var(--g-850);
-  border-bottom: 1px solid var(--g-700);
+  padding: 8px 16px 12px; background: var(--g-850);
   font-size: 12px; flex-wrap: wrap;
+  position: relative;
 }
+/* stalowa "rura" pod topbarem (chrome z belek stron B2/B3) + rant akcentu */
+#topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+  background: var(--steel-pipe);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 45%, transparent),
+              0 4px 10px rgba(0, 0, 0, .4);
+}
+[data-theme="paper"] #topbar::after { box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, transparent); }
 .brand {
-  color: var(--g-100); font-weight: 700; letter-spacing: 2px; font-size: 12px;
-  font-family: var(--font-display);
+  color: var(--g-100); font-weight: 400; letter-spacing: 2.5px; font-size: 10.5px;
+  font-family: var(--font-tech);
 }
 .brand::before { content: "◆ "; color: var(--accent); }
 #topbar span { white-space: nowrap; color: var(--g-400); }
@@ -209,7 +256,7 @@ select {
   background-repeat: no-repeat; background-position: right 8px center; background-size: 12px;
 }
 [data-theme="paper"] select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23675838' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234c525e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 #map-wrap {
   flex: 1; position: relative; overflow: hidden;
@@ -225,7 +272,7 @@ select {
   background: radial-gradient(ellipse 108% 108% at 50% 46%, transparent 62%, rgba(0, 0, 0, .38) 100%);
 }
 [data-theme="paper"] #map-wrap::after {
-  background: radial-gradient(ellipse 110% 110% at 50% 46%, transparent 68%, rgba(85, 65, 25, .18) 100%);
+  background: radial-gradient(ellipse 110% 110% at 50% 46%, transparent 68%, rgba(40, 46, 58, .15) 100%);
 }
 #hexmap { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 #hexmap:active { cursor: grabbing; }
@@ -238,12 +285,17 @@ select {
 /* boczna kolumna na subtelnej teksturze "tech-grid" ze stron Book 2 */
 #side-col {
   width: 400px; border-left: 1px solid var(--g-700); overflow-y: auto;
+  /* warstwy: przyciemnienie › watermark heksów (Etap 7) › tekstura tech-grid;
+     public mirror bez art: zostaje watermark + kolor — degradacja OK */
   background:
     linear-gradient(color-mix(in srgb, var(--g-900) 94%, transparent),
                     color-mix(in srgb, var(--g-900) 94%, transparent)),
+    var(--hex-wm) left top / 28px 49px repeat,
     url("art/tex-grid.jpg") center / 640px repeat var(--g-900);
 }
-[data-theme="paper"] #side-col { background: var(--g-900); }
+[data-theme="paper"] #side-col {
+  background: var(--hex-wm) left top / 28px 49px repeat var(--g-900);
+}
 .panel {
   background: color-mix(in srgb, var(--g-850) 92%, transparent);
   padding: 16px; margin: 8px;
@@ -251,13 +303,21 @@ select {
   border-radius: var(--radius);
   box-shadow: var(--shadow-panel);
 }
-/* nagłówki paneli: małe, uppercase, tracking — etykieta, nie krzyk */
+/* nagłówki paneli: Michroma jak nagłówki sekcji w B2/B3 — etykieta, nie krzyk */
 .panel h2, .panel h3 {
-  margin: 0 0 8px; color: var(--accent); font-size: 12px;
-  text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+  margin: 0 0 8px; color: var(--accent); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 1.8px; font-weight: 400;
+  font-family: var(--font-tech); line-height: 1.5;
+}
+.panel h2 .dim, .panel h3 .dim {
+  text-transform: none; letter-spacing: 0; font-weight: 400;
   font-family: var(--font-display);
 }
-.panel h3 .dim { text-transform: none; letter-spacing: 0; font-weight: 400; }
+/* przyciski wewnątrz nagłówków nie dziedziczą kroju/trackingu nagłówka */
+.panel h2 .tab-btn, .panel h3 .tab-btn {
+  font-family: var(--font-display); text-transform: none;
+  letter-spacing: 0; font-size: 12px; font-weight: 400;
+}
 .panel label { display: block; margin: 16px 0 8px; color: var(--g-400); font-size: 12px; }
 .panel input, .panel select {
   width: 100%; background: var(--g-800); color: var(--g-200);
@@ -268,22 +328,54 @@ select {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
 
-/* ekran startowy = "okładka" — malowany art z Book 1 (Deepnight Legacy) */
+/* ekran startowy = "okładka" — malowany art z Book 1 (Deepnight Legacy),
+   od Etapu 7 w ramie stalowych belek ze stron B2 (jak strona podręcznika) */
 #init-screen {
-  display: flex; align-items: center; justify-content: center; flex: 1;
+  display: flex; flex-direction: column; gap: 24px;
+  align-items: center; justify-content: center; flex: 1;
+  position: relative; overflow: hidden;
   background:
     linear-gradient(rgba(5, 7, 13, .38), rgba(5, 7, 13, .74)),
     url("art/hero.jpg") center / cover no-repeat var(--g-900);
 }
+/* belki: góra oryginał, dół lustrzany; public mirror bez art = brak belek (OK) */
+#init-screen::before, #init-screen::after {
+  content: ""; position: absolute; left: 0; right: 0; height: clamp(64px, 8vw, 118px);
+  background: url("art/steel-top.png") center / 100% 100% no-repeat;
+  pointer-events: none; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .55));
+}
+#init-screen::before { top: -2px; }
+#init-screen::after { bottom: -2px; transform: scale(-1, -1); }
+/* tytuł hero: skondensowany dwutonowy caps + stalowa "rura" (wzór H1 z książek) */
+.hero-title {
+  text-align: center; text-transform: uppercase; z-index: 1;
+  font-family: var(--font-condensed); font-weight: 400; line-height: .98;
+}
+/* kolory stałe (nie z motywu): tytuł leży na ciemnym zdjęciu w obu motywach */
+.hero-title .t1 {
+  display: block; font-size: 26px; letter-spacing: 7px; text-indent: 7px;
+  color: #93a2c4;
+}
+.hero-title .t2 {
+  display: block; font-size: 58px; letter-spacing: 11px; text-indent: 11px;
+  color: #eef2fb; text-shadow: 0 4px 28px rgba(0, 0, 0, .65);
+}
+.hero-title .pipe {
+  height: 8px; margin: 16px auto 0; max-width: 380px; border-radius: 4px;
+  background: var(--steel-pipe);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .5),
+              0 5px 0 -2px color-mix(in srgb, var(--accent) 50%, transparent);
+}
 #init-screen .panel {
-  max-width: 460px;
+  max-width: 460px; z-index: 1;
   background: color-mix(in srgb, var(--g-850) 82%, transparent);
   backdrop-filter: blur(8px);
 }
-#init-screen h2 { font-size: 14px; }
+#init-screen h2 { font-size: 11px; }
 
 /* ------------------------- panel systemu / statku ----------------------- */
-#hex-title { font-size: 15px !important; color: var(--g-100) !important; }
+/* tytuł hexu w Michromie jest szeroki — mniejszy stopień, wciąż najmocniejszy */
+#hex-title { font-size: 12px !important; color: var(--g-100) !important; }
 .sys-name { font-style: italic; letter-spacing: .4px; }
 /* liczby nie "skaczą" przy odświeżaniu, kody UWP wyraźnie techniczne */
 code, .stat .val, #tb-date, #tb-pos, #tb-fuel, #tb-su { font-variant-numeric: tabular-nums; }
@@ -351,6 +443,7 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
 #hex-desc p { margin: 8px 0; font-size: 13px; line-height: 1.55; color: var(--g-200); }
 #hex-detail table { width: 100%; border-collapse: collapse; margin: 8px 0; }
 #hex-detail td { padding: 4px; border-bottom: 1px solid var(--g-700); vertical-align: top; }
+#hex-detail tr:nth-child(even) td { background: color-mix(in srgb, var(--g-800) 45%, transparent); }
 #hex-detail td:first-child {
   color: var(--g-500); width: 45%; font-size: 11px;
   text-transform: uppercase; letter-spacing: .5px;
@@ -370,17 +463,26 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
 .check .warn { color: var(--warn); }
 .ok { color: var(--ok); }
 
+/* subhead sekcji ciał: orange jak "STAGE 8: FULL POTENTIAL" w B2 */
 #hex-bodies h4 {
-  margin: 16px 0 4px; color: var(--accent); font-size: 11px;
-  text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;
-  font-family: var(--font-display);
+  margin: 16px 0 4px; color: var(--orange); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 1.5px; font-weight: 400;
+  font-family: var(--font-tech);
 }
 .zone { margin: 8px 0 0; }
+/* nazwa strefy = band nagłówka tabeli MGT2 (ciemny pasek, jasne caps) */
 .zone-name {
-  display: block; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 1.5px; color: var(--g-500); margin-bottom: 2px;
+  display: block; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.8px; font-family: var(--font-tech);
+  background: var(--band-bg); color: var(--band-fg);
+  padding: 3px 8px; border-radius: 3px; margin-bottom: 3px;
 }
-.body-row { font-size: 13px; padding: 2px 0 2px 8px; color: var(--g-200); }
+.body-row { font-size: 13px; padding: 2px 8px; color: var(--g-200); }
+/* zebra rows jak w tabelach podręcznika (1. dziecko .zone to band) */
+.zone .body-row:nth-child(odd) {
+  background: color-mix(in srgb, var(--g-800) 55%, transparent);
+  border-radius: 3px;
+}
 .body-row .dim { font-size: 12px; }
 
 /* --------------------------- współczynniki ------------------------------ */
@@ -520,7 +622,9 @@ code, .stat .val, .uwp-head code, .roll-row .roll-when { font-family: var(--font
                     color-mix(in srgb, var(--g-900) 96%, transparent)),
     url("art/tex-nav.jpg") center / 920px repeat;
 }
-[data-theme="paper"] #journal-screen { background: var(--g-900); }
+[data-theme="paper"] #journal-screen {
+  background: var(--hex-wm) left top / 28px 49px repeat var(--g-900);
+}
 #journal-list { max-height: 60vh; overflow-y: auto; margin: 16px 0; }
 .log-row { padding: 8px; border-bottom: 1px solid var(--g-700); font-size: 13px; color: var(--g-200); }
 .log-row .k {
@@ -555,8 +659,9 @@ dialog {
 dialog[open] { animation: rise .2s ease; }
 dialog::backdrop { background: rgba(4, 6, 12, .7); }
 dialog h3 {
-  margin: 0 0 8px; color: var(--accent); font-size: 12px;
-  text-transform: uppercase; letter-spacing: 2px; font-family: var(--font-display);
+  margin: 0 0 8px; color: var(--accent); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 1.8px; font-weight: 400;
+  font-family: var(--font-tech); line-height: 1.5;
 }
 dialog .dlg-body { font-size: 13px; color: var(--g-400); margin-bottom: 8px; }
 dialog label { display: block; margin: 16px 0 4px; font-size: 12px; color: var(--g-400); }
@@ -583,7 +688,7 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
   position: absolute; inset: 0; width: 100%; height: 100%;
   stroke: #a9cdff; stroke-linecap: round;
 }
-[data-theme="paper"] #jump-overlay .warp { stroke: #6d5626; }
+[data-theme="paper"] #jump-overlay .warp { stroke: #4a5361; }
 #jump-overlay.play .warp-g {
   animation: warpzoom 2.7s cubic-bezier(.55, 0, .9, .55) forwards;
   transform-origin: 0px 0px;
@@ -593,9 +698,11 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
   22% { opacity: 1; }
   to { transform: scale(2.6); opacity: 0; }
 }
+/* tekst skoku jak H1 z książek: Anton, wielki, szeroki tracking */
 #jump-overlay .jump-text {
-  color: var(--g-100); font-size: 20px; letter-spacing: 6px; text-transform: uppercase;
-  text-shadow: 0 0 24px var(--accent); font-family: var(--font-display); font-weight: 600;
+  color: var(--g-100); font-size: 32px; letter-spacing: 10px; text-indent: 10px;
+  text-transform: uppercase; text-align: center;
+  text-shadow: 0 0 24px var(--accent); font-family: var(--font-condensed); font-weight: 400;
 }
 #jump-overlay .streaks {
   position: absolute; inset: 0;
@@ -630,9 +737,164 @@ dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin
 @media (prefers-reduced-motion: reduce) {
   .trail-seg, .ship-glyph .engine, .ship-ring, .ns-pulse, #jump-overlay.play, #jump-overlay .streaks,
   #jump-overlay.play .warp-g,
-  .scan-ping, .skel, dialog[open], #journal-screen .panel, #rolls-panel,
+  .scan-ping, .skel, dialog[open], #journal-screen .panel, #crew-screen .panel, #rolls-panel,
   #hex-panel.fade-swap #hex-chips, #hex-panel.fade-swap #hex-desc, #hex-panel.fade-swap #hex-uwp,
   #hex-panel.fade-swap #hex-bodies, #hex-panel.fade-swap #hex-actions {
     animation: none !important;
   }
+}
+
+
+/* --------------------- zaloga: org chart (drzewko) ----------------------- */
+/* drzewo organizacyjne ekspedycji (B2 s.42-45) — lancuch dowodzenia jak w
+   schematach korporacyjnych: boxy + linie; zespoly jako pionowe galezie */
+#crew-screen {
+  flex: 1; overflow-y: auto;
+  background:
+    linear-gradient(color-mix(in srgb, var(--g-900) 93%, transparent),
+                    color-mix(in srgb, var(--g-900) 96%, transparent)),
+    url("art/tex-nav.jpg") center / 920px repeat;
+}
+[data-theme="paper"] #crew-screen {
+  background: var(--hex-wm) left top / 28px 49px repeat var(--g-900);
+}
+#crew-screen .panel { animation: rise .22s ease; max-width: none; margin: 0 10px; }
+#crew-screen h2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#crew-screen h2 .spacer { flex: 1; }
+#crew-summary { font-size: 12px; font-weight: 400; }
+#crew-note { font-size: 12px; margin: 4px 0 10px; }
+#crew-gm.gm-on { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+
+/* kolory dywizji (border-top boxa) */
+.oc-box[data-div="command"]     { --div-c: #c9a86a; }
+.oc-box[data-div="flight"]      { --div-c: #6aa9e9; }
+.oc-box[data-div="engineering"] { --div-c: #e0a35c; }
+.oc-box[data-div="operations"]  { --div-c: #d97a7a; }
+.oc-box[data-div="mission"]     { --div-c: #7fc8a9; }
+
+.oc-scroll { overflow-x: auto; padding: 4px 4px 20px; }
+.oc-scroll { --oc-line: color-mix(in srgb, var(--g-500) 70%, transparent); }
+ul.oc, .oc ul { list-style: none; margin: 0; padding: 0; }
+ul.oc { display: flex; justify-content: center; min-width: max-content; }
+ul.oc > li { display: flex; flex-direction: column; align-items: center; }
+
+/* galaz pozioma (row): magistrala + pion do kazdego dziecka */
+.oc ul.row { display: flex; align-items: flex-start; padding-top: 22px; position: relative; }
+.oc ul.row::before {
+  content: ""; position: absolute; top: 0; left: 50%; height: 12px;
+  border-left: 1px solid var(--oc-line);
+}
+.oc ul.row > li {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px 10px 0; position: relative;
+}
+.oc ul.row > li::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  border-top: 1px solid var(--oc-line);
+}
+.oc ul.row > li:first-child::before { left: 50%; }
+.oc ul.row > li:last-child::before { right: 50%; }
+.oc ul.row > li:only-child::before { left: 50%; right: 50%; }
+.oc ul.row > li::after {
+  content: ""; position: absolute; top: 0; left: 50%; height: 12px;
+  border-left: 1px solid var(--oc-line);
+}
+
+/* galaz pionowa (stack): lista zespolu z liniami-lokciami */
+.oc ul.stack { display: flex; flex-direction: column; padding: 8px 0 0 24px; align-self: stretch; }
+.oc ul.stack > li { position: relative; padding: 6px 0 0; display: block; }
+.oc ul.stack > li::before {   /* lokiec poziomy do boxa */
+  content: ""; position: absolute; left: -13px; top: 24px; width: 13px;
+  border-top: 1px solid var(--oc-line);
+}
+.oc ul.stack > li::after {    /* pion laczacy kolejne boxy */
+  content: ""; position: absolute; left: -13px; top: -8px; bottom: 0;
+  border-left: 1px solid var(--oc-line);
+}
+.oc ul.stack > li:last-child::after { bottom: auto; height: 32px; }
+
+/* box wezla */
+.oc-box {
+  background: color-mix(in srgb, var(--g-850) 92%, transparent);
+  border: 1px solid var(--g-600); border-top: 3px solid var(--div-c, var(--g-600));
+  border-radius: var(--radius); padding: 7px 10px 8px;
+  min-width: 190px; max-width: 260px; font-size: 12.5px;
+}
+/* zespol/dzial — wyraznie inny kafel niz stanowisko: barwiony kolorem dywizji,
+   bez gornego paska; stanowiska = ciemne kafle z paskiem na gorze */
+.oc-box.group {
+  border: 1px solid color-mix(in srgb, var(--div-c, var(--g-600)) 45%, transparent);
+  border-top-width: 1px;
+  background: color-mix(in srgb, var(--div-c, var(--g-850)) 12%, var(--g-850));
+}
+.oc-box.group .oc-title {
+  text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+  color: color-mix(in srgb, var(--div-c, var(--g-300)) 75%, var(--g-100));
+  font-family: var(--font-display);
+}
+.oc-title { display: flex; align-items: baseline; gap: 6px; color: var(--g-100); font-weight: 600; }
+.oc-title span { flex: 1; }
+.oc-meta { color: var(--g-500); font-size: 11px; font-family: var(--font-mono); margin-top: 1px; }
+.oc-note { font-size: 10.5px; line-height: 1.35; margin-top: 2px; }
+
+.crew-people { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.crew-person {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--g-800); color: var(--g-100);
+  border: 1px solid var(--g-600); border-radius: var(--radius);
+  padding: 2px 7px; font: inherit; font-size: 12px; cursor: pointer;
+}
+.crew-person:hover { border-color: var(--accent); }
+.crew-person.dead { color: var(--g-500); text-decoration: line-through; }
+.chip-pc { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); }
+
+.crew-add {
+  background: none; border: 1px dashed var(--g-600); color: var(--g-500);
+  border-radius: var(--radius); font: inherit; font-size: 11px; line-height: 1;
+  padding: 2px 6px; cursor: pointer; flex: none;
+}
+.crew-add:hover { color: var(--accent); border-color: var(--accent); }
+.gm-note { color: var(--warn); }
+/* boczne galezie (aide): sztab przy Dowodcy Misji, XO przy Kapitanie —
+   box odchodzi w bok od pionu, linia pionowa biegnie dalej do dzieci */
+.oc-aides { position: relative; width: 100%; display: flex; flex-direction: column; }
+.oc-aides::before {
+  content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+  border-left: 1px solid var(--oc-line);
+}
+.oc-aide { position: relative; margin: 10px 0 0 calc(50% + 30px); width: max-content; max-width: 46%; }
+.oc-aide::before {
+  content: ""; position: absolute; left: -30px; top: 18px; width: 30px;
+  border-top: 1px solid var(--oc-line);
+}
+.oc-aide .oc-box { min-width: 190px; }
+
+/* aide "right": box rownolegle na prawo od przelozonego (XO przy Kapitanie).
+   W przeplywie (poddrzewo XO odpycha nizsze rzedy); margin-left rownowazy
+   szerokosc kolumny XO, zeby przelozony zostal na osi pionu dowodzenia */
+.oc-hpair { display: flex; align-items: flex-start; gap: 30px; margin-left: 290px; }
+.oc-aide-r { position: relative; width: max-content; }
+.oc-aide-r::before {
+  content: ""; position: absolute; left: -30px; top: 20px; width: 30px;
+  border-top: 1px solid var(--oc-line);
+}
+.oc-aide-r .oc-box { min-width: 190px; max-width: 260px; }
+
+/* galaz "grid": zespoly siatka 2-3 kolumny wewnatrz kolumny dywizji
+   (kompromis poziom/pion; bez lokci per zespol — jeden pion od szefa) */
+.oc ul.grid {
+  display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center;
+  padding: 14px 0 0; position: relative; max-width: 720px;
+}
+.oc ul.grid::before {
+  content: ""; position: absolute; top: 0; left: 50%; height: 14px;
+  border-left: 1px solid var(--oc-line);
+}
+.oc ul.grid > li { display: block; }
+
+/* stopien (Rank Comparison, B2 s.43) na kazdym stanowisku */
+.oc-rank {
+  flex: none; font-family: var(--font-mono); font-size: 10px;
+  color: var(--g-400); border: 1px solid var(--g-600); border-radius: var(--radius);
+  padding: 0 5px; line-height: 1.5; cursor: help;
 }

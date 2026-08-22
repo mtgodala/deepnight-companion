@@ -20,9 +20,16 @@ def seeded_rng(*parts: str) -> random.Random:
 
 
 def roll(spec: str, rng: random.Random | None = None) -> int:
-    """Rzuca wg notacji ("2D", "D3", "1D+4", "2Dx5", "3D-3")."""
+    """Rzuca wg notacji ("2D", "D3", "1D+4", "2Dx5", "3D-3").
+
+    Stala liczbowa ("0", "1", "12") jest legalna — tabele B3 mieszaja kosci
+    ze stalymi (np. Star System Presence: extremely sparse -> "1" cialo).
+    """
     rng = rng or random
-    m = _DICE_RE.match(spec.strip())
+    s = spec.strip()
+    if s.lstrip("-").isdigit():
+        return int(s)
+    m = _DICE_RE.match(s)
     if not m:
         raise ValueError(f"zla notacja kosci: {spec!r}")
     count = int(m.group(1) or 1)
@@ -41,7 +48,10 @@ def roll(spec: str, rng: random.Random | None = None) -> int:
 def roll_detail(spec: str, rng: random.Random | None = None) -> tuple[int, list[int]]:
     """Jak roll(), ale zwraca tez pojedyncze kosci (do logu/UI)."""
     rng = rng or random
-    m = _DICE_RE.match(spec.strip())
+    s = spec.strip()
+    if s.lstrip("-").isdigit():
+        return int(s), []
+    m = _DICE_RE.match(s)
     if not m:
         raise ValueError(f"zla notacja kosci: {spec!r}")
     count = int(m.group(1) or 1)

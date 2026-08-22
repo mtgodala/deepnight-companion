@@ -1,6 +1,6 @@
 # Plan podniesienia jakości frontendu companiona
 
-Stan: 2026-08-08 (etapy 1–3 ✅ commit 92abb3b; Etap 5 w toku) · benchmark: karta świata i mapa z Traveller RPG Companion (AceGoulet)
+Stan: 2026-08-22 (etapy 1–3 ✅ 92abb3b · etap 5 ✅ 8ada4d6 · etap 6 ✅ b781694 · etap 7 ✅ WYKONANY 2026-08-22, commit wstrzymany do domknięcia WIP crew w tych samych plikach; etap 4 celowo odłożony — dźwięki pominięte decyzją 2026-08-22) · benchmark: karta świata i mapa z Traveller RPG Companion (AceGoulet)
 · zasada nadrzędna: **fog-of-war po SI zostaje sercem UI** — konkurencja pokazuje
 wszystko (katalog OTU), my pokazujemy to, co załoga *wie*.
 
@@ -177,6 +177,111 @@ typografia. Assety w `web/art/` (przetworzone przez PIL z `extracted/*/images`):
 Publiczny mirror NIE dostaje `web/art/` (CSS degraduje się do kolorów fallback);
 ewentualnie do wygenerowania substytuty AI (`scripts/gen_image.py`).
 Motyw paper wyłącza wszystkie zdjęcia ([data-theme=paper] overrides).
+
+## Etap 7 — trade dress wnętrza podręczników (WYKONANY 2026-08-22)
+
+Decyzje z próbek (`companion/docs/etap7-samples/`): Michroma (sekcje; PL
+diakrytyki natywne — zweryfikowane; Orbitron ODRZUCONY, miesza glify z
+fallbackiem) + Anton (H1). Odstępstwa od propozycji przy implementacji:
+- 7.2: pełne belki stalowe poszły na EKRAN STARTOWY (rama góra/dół jak strona
+  książki), nie pod topbar — na topbarze płyta zabijała czytelność; topbar
+  i tytuł hero dostały „rurę" z czystego CSS (public-safe). Asset:
+  `web/art/steel-top.png` (tylko repo prywatne).
+- 7.4: subheady „LABEL: wartość" bez trzeciego fontu (Oswald) — orange
+  (`--orange`) na Michromie 9.5px (`#hex-bodies h4`); tytuł hero i jump-text
+  w Antonie.
+- 7.5: paper PRZESTROJONY na „stronę podręcznika" (szarość #e2e4e7,
+  watermark heks, band-y); hero-title ma kolory stałe (leży na zdjęciu).
+- 7.3: watermark heks (data-URI, heropatterns MIT) — dark: kolumna paneli
+  (warstwa nad tex-grid), paper: kolumna + dziennik + załoga. Public-safe.
+- 7.6: bandy stref (`.zone-name` na `--band-bg`) + zebra w liście ciał
+  i tabeli szczegółów.
+Weryfikacja: 8 screenshotów (dark/paper × main/hero/journal + jump + EN)
+w `etap7-samples/v_*.png`, pytest 56 passed. Fonty: `web/fonts/Michroma-400-*`,
+`Anton-400-*` (latin+latin-ext, self-hosted).
+
+## Etap 7 — pierwotna propozycja (2026-08-22)
+
+Diagnoza (porównanie renderów stron B2 p.16/41, B3 p.71-73 z obecnym UI):
+etap 6 dał *tła* z książek, ale chrome UI (typografia nagłówków, ramki,
+kolory akcentów) wciąż jest „generyczny sci-fi", nie „Mongoose Deepnight".
+Język graficzny wnętrza książek, którego nam brakuje:
+
+1. **Stalowe belki** — skośne, fazowane płyty szczotkowanej stali z rantem
+   niebieskiego starfieldu u góry/dołu każdej strony. Kluczowe: te grafiki
+   są już wycięte jako PRZEZROCZYSTE PNG w `extracted/book2_campaign/images/`
+   (np. `p005_img02_409KB.png`, `p005_img03_296KB.png` — powtarzają się na
+   każdej stronie). Gotowe assety, zero wycinania.
+2. **Typografia nagłówków** — trzy warstwy: kicker o ogromnym trackingu
+   („C H A P T E R  E I G H T"), H1 super-ciężkim skondensowanym groteskiem
+   caps dwutonowo („THE CREW"), nagłówki sekcji szerokim kwadratowym fontem
+   à la Eurostile Extended z dużym letter-spacingiem, często łamane na dwie
+   linie z kontrastem rozmiaru („DISTANT SENSOR / OPERATIONS"). Pod H1 —
+   pozioma stalowa „rura".
+3. **Pomarańczowy akcent subheadów** — wzór „STAGE 8: FULL POTENTIAL"
+   (label czarny bold + wartość orange ~#f26522).
+4. **Jasne strony body** — chłodna szarość z delikatnym watermarkiem
+   siatki HEKSAGONÓW + pojedyncze błyski gwiazd i diagonalne smugi światła.
+   (Nasz obecny motyw paper jest kremowy „nav chart" — inna estetyka.)
+
+### 7.1 Fonty nagłówkowe „z książki" (największa dźwignia)
+- **Pliki:** `web/fonts/`, `style.css`, `index.html` (preload)
+- Sekcje/panele: font klasy Eurostile-Extended — kandydaci **Michroma** /
+  **Orbitron** / fallback **Chakra Petch** (Google, self-host woff2).
+  ⚠ KROK ZERO: zweryfikować pokrycie latin-ext (PL: ŁŻĘĄŚĆŃÓŹ) — Michroma
+  bywa latin-only; jeśli żaden „kwadratowy" nie ma PL znaków, zostać przy
+  spacingu + caps na Exo 2 dla PL, a font-feature tylko dla EN.
+- Duże ekrany (hero, jump overlay, dialogi): ciężki skondensowany caps —
+  **Anton** lub **Oswald 600/700** (oba mają latin-ext), dwutonowe szarości.
+- **Kryterium:** panel tytułowy wygląda jak nagłówek sekcji z B3; PL
+  diakrytyki renderują się we wszystkich wagach.
+
+### 7.2 Stalowe belki jako chrome UI
+- **Pliki:** `scripts/` (przetworzenie PIL: crop/downscale → `web/art/`),
+  `style.css` (`#topbar`, nagłówki paneli, stopka kolumny bocznej)
+- Topbar dostaje belkę stalową z rantem starfieldu (asset z p005_img02);
+  cienka „rura" (spod H1 książek) jako separator pod tytułami paneli.
+- **⚠ COPYRIGHT jak w etapie 6:** assety TYLKO repo prywatne; public
+  fallback = CSS clip-path (fazowany polygon) + gradient metalu + pasek
+  gwiazd gradientem — degradacja bez zmiany layoutu.
+- **Kryterium:** topbar i nagłówki paneli czytelne, klikalność bez zmian;
+  public mirror wygląda poprawnie bez plików art.
+
+### 7.3 Watermark heksagonalny (copyright-safe, oba repo)
+- **Pliki:** `style.css` (inline SVG data-URI pattern) lub `web/hex-grid.svg`
+- Generowana siatka heksów opacity ~4–6% na tle kolumny paneli i dziennika
+  (jak strony body książek); w dark subtelniejsza, w jasnym wyraźniejsza.
+  Tło NIE koduje wiedzy o systemach — czysto dekoracyjne.
+- **Kryterium:** widoczna z bliska, niewidoczna „z 1,5 m"; zero wpływu
+  na czytelność tekstu.
+
+### 7.4 Wzorce nagłówków i subheadów
+- **Pliki:** `style.css`, `app.js` (klasy przy renderze paneli/karty hexu)
+- Tytuły paneli: dwie linie z kontrastem rozmiaru + tracking (wzór
+  „DISTANT SENSOR / OPERATIONS"); subheady danych: wzór „LABEL: wartość"
+  z wartością w akcencie; kicker z ogromnym trackingiem nad tytułami
+  dialogów (jump, security sweep).
+- **Kryterium:** hierarchia trzech poziomów rozpoznawalna bez czytania.
+
+### 7.5 Motyw „podręcznik" zamiast obecnego paper (decyzja Mateusza)
+- **Pliki:** `style.css` (`[data-theme=paper]` → retune)
+- Propozycja: przestroić paper z kremu „nav chart" na chłodną szarość
+  stron body książek (+ watermark heks + belki stalowe + subheady orange
+  jako akcent domyślny motywu). Alternatywa: zostawić paper i dodać trzeci
+  motyw — ODRADZANE (3 motywy × 2 języki × fog-of-war = koszt testów).
+- **Kryterium:** motyw jasny wygląda jak strona B2/B3; drukowalność
+  zachowana; fog-of-war czytelny (jasność ↔ wiedza).
+
+### 7.6 Tabele/listy w stylu MGT2
+- **Pliki:** `style.css`, ew. drobne klasy w `app.js`
+- Listy ciał w karcie hexu i tabele dialogów: ciemny band nagłówka
+  (caps, tracking), zebra rows, wyrównanie liczb do prawej (tabular-nums
+  już jest z 1.2).
+- **Kryterium:** tabela w karcie hexu wygląda jak tabela z podręcznika.
+
+Weryfikacja etapu: jak zawsze (screenshoty EN+PL × oba motywy, hex o niskim
+SI w player view, `node --check`, pytest smoke, commit do obu repo — public
+bez `web/art/`).
 
 ## Etap 4 — klimat (opcjonalny, po użyciu na sesji)
 

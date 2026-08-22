@@ -7,8 +7,16 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/* tryb GM: token w localStorage; z nim serwer zwraca pola gm_* i wpisy gm_only */
+let GM_TOKEN = localStorage.getItem("dn-gm-token") || "";
+const gmHeaders = () => (GM_TOKEN ? { "X-GM-Token": GM_TOKEN } : {});
 const api = async (path, opts = {}) => {
-  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const r = await fetch(path, {
+    ...opts,
+    headers: { "Content-Type": "application/json", ...gmHeaders(), ...(opts.headers || {}) },
+  });
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
     throw new Error(body.detail || r.statusText);
@@ -56,6 +64,8 @@ const PL = {
     noteAuthorPh: "autor / postać", noteTextPh: "wpis do logu...", noteAdd: "Dodaj wpis",
     cancel: "Anuluj", jumpText: "Jumpspace — 7 dni",
     rollsTitle: "Historia rzutów", rollsBtnTip: "Historia rzutów (ta sesja)",
+    crewBtn: "Załoga", crewBtnTip: "Drzewo załogi ekspedycji (B2 s.42-45)",
+    crewTitle: "Załoga ekspedycji",
   },
   /* dekodery */
   STARPORT: {
@@ -218,7 +228,33 @@ const PL = {
   /* dziennik */
   KIND: { init: "START", scan: "SKAN", jump: "SKOK", skim: "PALIWO",
     wait: "POSTÓJ", note: "WPIS", undo: "COFNIĘCIE", edit: "KOREKTA",
-    shortrange: "SWEEP", security: "OCHRONA" },
+    shortrange: "SWEEP", security: "OCHRONA", crew: "ZAŁOGA" },
+  /* załoga (drzewo organizacyjne) */
+  crewSummary: (named, total) => `etat ${total} · nazwanych: ${named}`,
+  crewSuccession: "Sukcesja dowodzenia: XO → Flight → Engineering → Operations (B2 s.44-45). Dowodzenie kolegialne — decyzje w naradzie dowództwa.",
+  crewVacant: "wakat", crewPCBadge: "PC",
+  CREW_STATUS: { alive: "czynny", wounded: "ranny", dead: "poległ", missing: "zaginiony" },
+  RANKS: { 0: "Dowódca Misji", 1: "Kapitan", 2: "Oficer Wykonawczy",
+    3: "szef dywizji (Chief Officer)", 4: "starszy oficer (Senior Officer)",
+    5: "oficer", 6: "dowódca zespołu (Team Leader)",
+    7: "specjalista / doświadczony załogant", 8: "załogant / generalista" },
+  rankShort: (l) => `st. ${l}`,
+  crewCount: (n) => `${n} os.`,
+  crewGmOn: "TRYB GM ✓", crewGmOff: "GM…",
+  crewGmAskTitle: "Tryb GM",
+  crewGmAskBody: "Podaj token z <code>companion/gm_token.txt</code>. Nie pokazywać graczom.",
+  crewGmField: "Token", crewGmBad: "Nieprawidłowy token.",
+  crewGmExitTitle: "Wyłączyć tryb GM?", crewGmExitBody: "Pola GM znikną z tej przeglądarki.",
+  crewAddBtn: "+ osoba", crewAddTitle: "Nowa osoba",
+  crewEditTitle: (n) => `Edycja: ${n}`,
+  crewFName: "Imię i nazwisko", crewFNode: "Stanowisko", crewFKind: "Typ",
+  crewFStatus: "Status", crewFNote: "Notka (widzą gracze)", crewFGmNote: "Notka GM (ukryta)",
+  crewFLogGm: "Wpis w dzienniku", crewLogOpen: "jawny", crewLogGm: "tylko GM",
+  crewKindNpc: "NPC", crewKindPc: "postać gracza (PC)",
+  crewEditWord: "Edytuj",
+  crewDeleteWord: "Usuń", crewDeleteTitle: (n) => `Usunąć ${n}?`,
+  crewDeleteBody: "Osoba zniknie z drzewa (wpis o usunięciu trafi do dziennika).",
+  crewNoteHdr: "Notka:", crewGmNoteHdr: "Notka GM:",
   /* undo */
   undoConfirmTitle: "Cofnij ostatnią akcję",
   undoConfirmBody: "Pozycja, paliwo, czas i SI wrócą do stanu sprzed akcji. Wpis o cofnięciu trafi do dziennika.",
@@ -251,6 +287,8 @@ const EN = {
     noteAuthorPh: "author / character", noteTextPh: "log entry...", noteAdd: "Add entry",
     cancel: "Cancel", jumpText: "Jumpspace — 7 days",
     rollsTitle: "Roll history", rollsBtnTip: "Roll history (this session)",
+    crewBtn: "Crew", crewBtnTip: "Expedition crew tree (B2 p.42-45)",
+    crewTitle: "Expedition crew",
   },
   STARPORT: {
     A: "class A starport — excellent (shipyard, refined fuel)",
@@ -403,7 +441,32 @@ const EN = {
   srNothing: "nothing found",
   KIND: { init: "START", scan: "SCAN", jump: "JUMP", skim: "FUEL",
     wait: "HOLD", note: "NOTE", undo: "UNDO", edit: "EDIT",
-    shortrange: "SWEEP", security: "SECURITY" },
+    shortrange: "SWEEP", security: "SECURITY", crew: "CREW" },
+  crewSummary: (named, total) => `complement ${total} · named: ${named}`,
+  crewSuccession: "Line of command: XO → Flight → Engineering → Operations (B2 p.44-45). Collegiate command — decisions by command conference.",
+  crewVacant: "vacant", crewPCBadge: "PC",
+  CREW_STATUS: { alive: "active", wounded: "wounded", dead: "KIA", missing: "missing" },
+  RANKS: { 0: "Mission Commander", 1: "Captain", 2: "Executive Officer",
+    3: "Chief Officer (division head)", 4: "Senior Officer",
+    5: "Officer", 6: "Team Leader",
+    7: "specialist / experienced crew", 8: "crewmember / generalist" },
+  rankShort: (l) => `L${l}`,
+  crewCount: (n) => `${n}`,
+  crewGmOn: "GM MODE ✓", crewGmOff: "GM…",
+  crewGmAskTitle: "GM mode",
+  crewGmAskBody: "Enter the token from <code>companion/gm_token.txt</code>. Do not show players.",
+  crewGmField: "Token", crewGmBad: "Invalid token.",
+  crewGmExitTitle: "Disable GM mode?", crewGmExitBody: "GM fields will disappear from this browser.",
+  crewAddBtn: "+ person", crewAddTitle: "New person",
+  crewEditTitle: (n) => `Edit: ${n}`,
+  crewFName: "Name", crewFNode: "Position", crewFKind: "Kind",
+  crewFStatus: "Status", crewFNote: "Note (players see it)", crewFGmNote: "GM note (hidden)",
+  crewFLogGm: "Journal entry", crewLogOpen: "public", crewLogGm: "GM only",
+  crewKindNpc: "NPC", crewKindPc: "player character (PC)",
+  crewEditWord: "Edit",
+  crewDeleteWord: "Delete", crewDeleteTitle: (n) => `Delete ${n}?`,
+  crewDeleteBody: "The person disappears from the tree (a removal entry goes to the log).",
+  crewNoteHdr: "Note:", crewGmNoteHdr: "GM note:",
   undoConfirmTitle: "Undo last action",
   undoConfirmBody: "Position, fuel, time and SI will revert to the state before the action. An undo entry goes to the log.",
   undoWord: "Undo", undoDone: (a) => `↩ undone: ${a}`,
@@ -514,8 +577,11 @@ function showDialog({ title, body = "", fields = [], okLabel = "OK" }) {
     $("dlg-body").innerHTML = body;
     $("dlg-fields").innerHTML = fields.map((f) => {
       if (f.type === "select")
-        return `<label>${f.label}<select data-name="${f.name}">${f.options.map((o) => `<option value="${o}">${o}</option>`).join("")}</select></label>`;
-      return `<label>${f.label}<input data-name="${f.name}" value="${f.value ?? ""}" placeholder="${f.placeholder ?? ""}"></label>`;
+        return `<label>${f.label}<select data-name="${f.name}">${f.options.map((o) => {
+          const v = typeof o === "object" ? o.value : o, l = typeof o === "object" ? o.label : o;
+          return `<option value="${esc(String(v))}"${String(v) === String(f.value ?? "") ? " selected" : ""}>${esc(String(l))}</option>`;
+        }).join("")}</select></label>`;
+      return `<label>${f.label}<input data-name="${f.name}" value="${esc(String(f.value ?? ""))}" placeholder="${f.placeholder ?? ""}"></label>`;
     }).join("");
     $("dlg-ok").textContent = okLabel;
     const close = (result) => { dlg.close(); resolve(result); cleanup(); };
@@ -1536,7 +1602,7 @@ async function showJournal() {
   $("journal-screen").classList.remove("hidden");
   const rows = await api("/api/journal");
   $("journal-list").innerHTML = rows.slice().reverse().map((r) =>
-    `<div class="log-row ${r.kind}"><span class="d">${r.date_imperial || ""}</span><span class="k">${T.KIND[r.kind] || r.kind}</span>${r.text}${r.data?.author ? ` <span class="dim">— ${r.data.author}</span>` : ""}</div>`
+    `<div class="log-row ${r.kind}"><span class="d">${r.date_imperial || ""}</span><span class="k">${T.KIND[r.kind] || r.kind}</span>${r.gm_only ? `<span class="chip chip-warn">GM</span> ` : ""}${r.text}${r.data?.author ? ` <span class="dim">— ${r.data.author}</span>` : ""}</div>`
   ).join("");
 }
 $("btn-journal").addEventListener("click", showJournal);
@@ -1551,6 +1617,197 @@ $("note-add").addEventListener("click", async () => {
     body: JSON.stringify({ text, author: $("note-author").value.trim() }) });
   $("note-text").value = "";
   showJournal();
+});
+
+/* =============================== ZAŁOGA ================================= */
+/* Drzewo organizacyjne ekspedycji (B2 s.42-45): szablon stanowisk z
+   companion/data/crew_template.json + obsada imienna z state/crew.json.
+   Tryb GM (token) odsłania pola gm_* i pozwala edytować obsadę. */
+
+let CREW = null;   // { nodes, people, gm }
+
+const nodeName = (n) => (LANG === "en" ? n.name_en : n.name_pl) || n.name_pl;
+const nodeNote = (n) => (LANG === "en" ? n.note_en : n.note_pl) || "";
+const slugify = (s) => s.toLowerCase()
+  .replace(/[ąćęłńóśźż]/g, (c) => ({ ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z" }[c]))
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+async function showCrew() {
+  $("main").classList.add("hidden");
+  $("init-screen").classList.add("hidden");
+  $("journal-screen").classList.add("hidden");
+  $("crew-screen").classList.remove("hidden");
+  CREW = await api("/api/crew");
+  renderCrew();
+}
+
+function crewChildren(id) { return CREW.nodes.filter((n) => n.parent === id); }
+function crewHeadcount(id) {
+  return crewChildren(id).reduce((sum, n) =>
+    sum + (n.count ?? 0) + crewHeadcount(n.id), 0);
+}
+const peopleAt = (id) => CREW.people.filter((p) => p.node === id);
+
+const STATUS_CLS = { alive: "ok", wounded: "warn", dead: "bad", missing: "info" };
+
+function personChip(p) {
+  const st = p.status !== "alive"
+    ? ` <span class="chip chip-${STATUS_CLS[p.status] || "dim"}">${T.CREW_STATUS[p.status] || p.status}</span>` : "";
+  const pc = p.kind === "pc" ? ` <span class="chip chip-pc">${T.crewPCBadge}</span>` : "";
+  return `<button class="crew-person ${p.status}" data-slug="${esc(p.slug)}">` +
+    `${esc(p.name)}${pc}${st}</button>`;
+}
+
+/* box wezla org chartu: stanowisko (count) lub grupa/dzial (count=null) */
+function nodeBox(n) {
+  const people = peopleAt(n.id);
+  const isGroup = n.count === null;
+  const count = isGroup ? crewHeadcount(n.id) : n.count;
+  const vacant = !isGroup && n.count === 1 && n.level !== null && n.level <= 4 && !people.length
+    ? ` <span class="chip chip-dim">${T.crewVacant}</span>` : "";
+  // stopien wg Rank Comparison (B2 s.43) — na kazdym stanowisku
+  const rank = !isGroup && n.level !== null
+    ? `<span class="oc-rank" title="${esc(T.RANKS[n.level] || "")}">${T.rankShort(n.level)}</span>` : "";
+  // wpis nazwiska dostepny przy KAZDYM oknie (stanowiska i zespoly)
+  const add = `<button class="crew-add" data-node="${n.id}" title="${T.crewAddTitle}">+</button>`;
+  return `<div class="oc-box${isGroup ? " group" : ""}" data-div="${n.division}">` +
+    `<div class="oc-title"><span>${esc(nodeName(n))}</span>${add}</div>` +
+    `<div class="oc-meta">${T.crewCount(count)}${rank ? " · " + rank : ""}${vacant}</div>` +
+    (nodeNote(n) ? `<div class="oc-note dim">${esc(nodeNote(n))}</div>` : "") +
+    (people.length ? `<div class="crew-people">${people.map(personChip).join("")}</div>` : "") +
+    `</div>`;
+}
+
+/* rekurencyjny wezel: box + boczne galezie (aide: sztab, XO) + dzieci
+   (row = poziomo z magistrala, stack = pionowa lista zespolu z lokciami) */
+function renderSubtree(n) {
+  const kids = crewChildren(n.id);
+  const aidesRight = kids.filter((k) => k.aide === "right");  // rownolegle, w prawo (XO)
+  const aidesDown = kids.filter((k) => k.aide === true);      // odnoga w dol (sztab)
+  const main = kids.filter((k) => !k.aide);
+  const box = aidesRight.length
+    ? `<div class="oc-hpair">${nodeBox(n)}${aidesRight.map((a) =>
+        `<div class="oc-aide-r">${renderSubtree(a)}</div>`).join("")}</div>`
+    : nodeBox(n);
+  const aideHtml = aidesDown.length
+    ? `<div class="oc-aides">${aidesDown.map((a) =>
+        `<div class="oc-aide">${renderSubtree(a)}</div>`).join("")}</div>`
+    : "";
+  const mode = n.branch === "row" ? "row" : n.branch === "grid" ? "grid" : "stack";
+  const ul = main.length
+    ? `<ul class="${mode}">${main.map((k) =>
+        `<li>${renderSubtree(k)}</li>`).join("")}</ul>`
+    : "";
+  return `${box}${aideHtml}${ul}`;
+}
+
+function renderCrew() {
+  const total = CREW.nodes.reduce((s, n) => s + (n.count || 0), 0);
+  $("crew-summary").textContent = T.crewSummary(CREW.people.length, total);
+  $("crew-note").textContent = T.crewSuccession;
+  const gmBtn = $("crew-gm");
+  gmBtn.textContent = CREW.gm ? T.crewGmOn : T.crewGmOff;
+  gmBtn.classList.toggle("gm-on", CREW.gm);
+
+  const roots = CREW.nodes.filter((n) => n.parent === null);
+  $("crew-tree").innerHTML =
+    `<div class="oc-scroll"><ul class="oc">${roots.map((r) =>
+      `<li>${renderSubtree(r)}</li>`).join("")}</ul></div>`;
+  // wycentruj poziomo na pionie dowodzenia (chart bywa szerszy niż ekran)
+  const sc = $("crew-tree").querySelector(".oc-scroll");
+  sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2;
+
+  $("crew-screen").querySelectorAll(".crew-person").forEach((b) =>
+    b.addEventListener("click", () => personDetail(b.dataset.slug)));
+  $("crew-screen").querySelectorAll(".crew-add").forEach((b) =>
+    b.addEventListener("click", () => personForm(null, b.dataset.node)));
+}
+
+async function personDetail(slug) {
+  const p = CREW.people.find((x) => x.slug === slug);
+  if (!p) return;
+  const node = CREW.nodes.find((n) => n.id === p.node);
+  let body = `<p><b>${esc(p.name)}</b> — ${esc(node ? nodeName(node) : p.node)}` +
+    (p.kind === "pc" ? ` <span class="chip chip-pc">${T.crewPCBadge}</span>` : "") +
+    ` <span class="chip chip-${STATUS_CLS[p.status] || "dim"}">${T.CREW_STATUS[p.status] || p.status}</span></p>` +
+    (p.note ? `<p>${T.crewNoteHdr} ${esc(p.note)}</p>` : "");
+  if (CREW.gm && p.gm_note)
+    body += `<p class="gm-note">${T.crewGmNoteHdr} ${esc(p.gm_note)}</p>`;
+  // info + wybór akcji (Anuluj = tylko podgląd); usuwanie tylko w trybie GM
+  const actions = [{ value: "edit", label: T.crewEditWord }];
+  if (CREW.gm) actions.push({ value: "del", label: T.crewDeleteWord });
+  const act = await showDialog({
+    title: p.name, body,
+    fields: [{ type: "select", name: "act", label: "", value: "edit", options: actions }],
+  });
+  if (!act) return;
+  if (act.act === "edit") return personForm(p, p.node);
+  if (act.act === "del") {
+    if (!(await showConfirm(T.crewDeleteTitle(p.name), T.crewDeleteBody, T.crewDeleteWord))) return;
+    await api("/api/crew/person", { method: "POST",
+      body: JSON.stringify({ slug: p.slug, delete: true }) });
+    return showCrew();
+  }
+}
+
+async function personForm(p, nodeId) {
+  // przypisywac mozna do kazdego wezla: stanowiska i zespolu (ogolny czlonek)
+  const positions = CREW.nodes.map((n) => ({ value: n.id, label: nodeName(n) }));
+  const fields = [
+    { name: "name", label: T.crewFName, value: p?.name ?? "" },
+    { type: "select", name: "node", label: T.crewFNode, value: p?.node ?? nodeId, options: positions },
+    { type: "select", name: "kind", label: T.crewFKind, value: p?.kind ?? "npc",
+      options: [{ value: "npc", label: T.crewKindNpc }, { value: "pc", label: T.crewKindPc }] },
+    { type: "select", name: "status", label: T.crewFStatus, value: p?.status ?? "alive",
+      options: ["alive", "wounded", "dead", "missing"].map((s) => ({ value: s, label: T.CREW_STATUS[s] })) },
+    { name: "note", label: T.crewFNote, value: p?.note ?? "" },
+  ];
+  if (CREW.gm) {
+    fields.push({ name: "gm_note", label: T.crewFGmNote, value: p?.gm_note ?? "" });
+    fields.push({ type: "select", name: "log_gm", label: T.crewFLogGm, value: "0",
+      options: [{ value: "0", label: T.crewLogOpen }, { value: "1", label: T.crewLogGm }] });
+  }
+  const vals = await showDialog({
+    title: p ? T.crewEditTitle(p.name) : T.crewAddTitle, fields, okLabel: T.save,
+  });
+  if (!vals || !vals.name.trim()) return;
+  const payload = {
+    slug: p?.slug ?? slugify(vals.name), name: vals.name.trim(), node: vals.node,
+    kind: vals.kind, status: vals.status, note: vals.note,
+  };
+  if (CREW.gm) {
+    payload.gm_note = vals.gm_note;
+    payload.log_gm_only = vals.log_gm === "1";
+  }
+  await api("/api/crew/person", { method: "POST", body: JSON.stringify(payload) });
+  showCrew();
+}
+
+async function toggleGm() {
+  if (GM_TOKEN) {
+    if (!(await showConfirm(T.crewGmExitTitle, T.crewGmExitBody))) return;
+    GM_TOKEN = "";
+    localStorage.removeItem("dn-gm-token");
+    return showCrew();
+  }
+  const vals = await showDialog({ title: T.crewGmAskTitle, body: T.crewGmAskBody,
+    fields: [{ name: "token", label: T.crewGmField }] });
+  if (!vals || !vals.token.trim()) return;
+  GM_TOKEN = vals.token.trim();
+  const probe = await api("/api/crew");
+  if (!probe.gm) {
+    GM_TOKEN = "";
+    return showInfo(T.errTitle, T.crewGmBad);
+  }
+  localStorage.setItem("dn-gm-token", GM_TOKEN);
+  showCrew();
+}
+
+$("btn-crew").addEventListener("click", showCrew);
+$("crew-gm").addEventListener("click", toggleGm);
+$("crew-close").addEventListener("click", () => {
+  $("crew-screen").classList.add("hidden");
+  $(STATE ? "main" : "init-screen").classList.remove("hidden");
 });
 
 /* =============================== START ================================== */
@@ -1595,7 +1852,10 @@ $("init-go").addEventListener("click", async () => {
     $("init-screen").classList.remove("hidden");
     return;
   }
-  $("main").classList.remove("hidden");
+  // nie odslaniaj mapy, jesli user zdazyl juz otworzyc zaloge/dziennik
+  if ($("crew-screen").classList.contains("hidden") &&
+      $("journal-screen").classList.contains("hidden"))
+    $("main").classList.remove("hidden");
   renderTopbar();
   renderStats();
   await loadBookmarks();
