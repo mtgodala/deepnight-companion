@@ -898,3 +898,56 @@ ul.oc > li { display: flex; flex-direction: column; align-items: center; }
   color: var(--g-400); border: 1px solid var(--g-600); border-radius: var(--radius);
   padding: 0 5px; line-height: 1.5; cursor: help;
 }
+/* ============================ ładownia (cargo) =========================== */
+#cargo-screen {
+  flex: 1; overflow-y: auto;
+  background:
+    linear-gradient(color-mix(in srgb, var(--g-900) 93%, transparent),
+      color-mix(in srgb, var(--g-900) 93%, transparent)),
+    url("/static/art/tex-grid.jpg") center / cover no-repeat var(--g-900);
+}
+[data-theme="paper"] #cargo-screen {
+  background: var(--hex-wm) left top / 28px 49px repeat var(--g-900);
+}
+#cargo-screen .panel { animation: rise .22s ease; max-width: 1100px; margin: 0 auto; }
+#cargo-screen h2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#cargo-screen h2 .spacer { flex: 1; }
+#cargo-summary { font-size: 12px; font-weight: 400; }
+#cargo-summary.over { color: var(--warn); }
+#cargo-note { font-size: 12px; margin: 4px 0 12px; }
+
+#cargo-bays {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px; margin: 0 0 18px;
+}
+.bay-card {
+  border: 1px solid var(--g-700); border-radius: 6px; padding: 8px 10px;
+  background: color-mix(in srgb, var(--g-800) 65%, transparent);
+}
+.bay-card.over { border-color: var(--warn); }
+.bay-name { font-size: 12px; color: var(--g-200); margin-bottom: 6px; }
+.bay-bar { height: 5px; background: var(--g-700); border-radius: 3px; overflow: hidden; }
+.bay-fill { height: 100%; background: var(--accent); }
+.bay-card.over .bay-fill { background: var(--warn); }
+.bay-use { font-size: 11px; margin-top: 4px; }
+
+.cargo-group { margin-bottom: 16px; }
+.cargo-group h3 {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--g-200); border-bottom: 1px solid var(--g-700);
+  padding-bottom: 4px; margin-bottom: 6px;
+}
+.cargo-group h3 .su-hint { font-size: 11px; text-transform: none; letter-spacing: 0; }
+.cargo-group-add { padding: 0 8px; line-height: 20px; }
+.cargo-item {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  width: 100%; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 1px dotted var(--g-700);
+  padding: 6px 4px; color: var(--g-200); font: inherit; font-size: 13px;
+}
+.cargo-item:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.ci-name { font-weight: 600; }
+.ci-tons { font-family: var(--mono, monospace); font-size: 12px; color: var(--g-300, var(--g-200)); }
+.ci-note { font-size: 12px; }
+.ci-empty { font-size: 12px; padding: 4px; }

@@ -49,6 +49,8 @@ document.documentElement.dataset.accent = localStorage.getItem("dn-accent") || "
   <button id="btn-accent" class="tab-btn" data-i18n-title="accentTip" title="Accent colour">●</button>
   <button id="btn-lang" class="tab-btn" title="Switch language / zmień język">PL</button>
   <button id="btn-undo" class="tab-btn" data-i18n-title="undoTitle" title="Undo the last action (table mistake correction)"><svg class="ico"><use href="#i-undo"/></svg><span data-i18n="undoBtn">undo</span></button>
+  <button id="btn-map" class="tab-btn" data-i18n-title="mapBtnTip" title="Sector map"><svg class="ico"><use href="#i-globe"/></svg><span data-i18n="mapBtn">Map</span></button>
+  <button id="btn-cargo" class="tab-btn" data-i18n-title="cargoBtnTip" title="Cargo hold manifest"><svg class="ico"><use href="#i-box"/></svg><span data-i18n="cargoBtn">Cargo</span></button>
   <button id="btn-crew" class="tab-btn" data-i18n-title="crewBtnTip" title="Expedition crew tree (B2 p.42-45)"><svg class="ico"><use href="#i-crew"/></svg><span data-i18n="crewBtn">Crew</span></button>
   <button id="btn-journal" class="tab-btn"><svg class="ico"><use href="#i-book"/></svg><span data-i18n="journalBtn">Log</span></button>
 </div>
@@ -135,6 +137,19 @@ document.documentElement.dataset.accent = localStorage.getItem("dn-accent") || "
         <button id="crew-close" class="tab-btn" data-i18n="journalClose">← map</button></h2>
     <p id="crew-note" class="dim"></p>
     <div id="crew-tree"></div>
+  </div>
+</div>
+
+<div id="cargo-screen" class="hidden">
+  <div class="panel">
+    <h2><span data-i18n="cargoTitle">Cargo hold</span>
+        <span id="cargo-summary" class="dim"></span>
+        <span class="spacer"></span>
+        <button id="cargo-add" class="tab-btn" data-i18n="cargoAdd">+ item</button>
+        <button id="cargo-close" class="tab-btn" data-i18n="journalClose">← map</button></h2>
+    <p id="cargo-note" class="dim" data-i18n="cargoNote">Standard equipment does not use cargo space — this manifest tracks everything above standard.</p>
+    <div id="cargo-bays"></div>
+    <div id="cargo-groups"></div>
   </div>
 </div>
 

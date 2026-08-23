@@ -1,6 +1,6 @@
 # Plan podniesienia jakości frontendu companiona
 
-Stan: 2026-08-22 (etapy 1–3 ✅ 92abb3b · etap 5 ✅ 8ada4d6 · etap 6 ✅ b781694 · etap 7 ✅ WYKONANY 2026-08-22, commit wstrzymany do domknięcia WIP crew w tych samych plikach; etap 4 celowo odłożony — dźwięki pominięte decyzją 2026-08-22) · benchmark: karta świata i mapa z Traveller RPG Companion (AceGoulet)
+Stan: 2026-08-22 (etapy 1–3 ✅ 92abb3b · etap 5 ✅ 8ada4d6 · etap 6 ✅ b781694 · etap 7 ✅ 7231fad, mirror dc873b8; etap 4 celowo odłożony — dźwięki pominięte decyzją 2026-08-22) · benchmark: karta świata i mapa z Traveller RPG Companion (AceGoulet)
 · zasada nadrzędna: **fog-of-war po SI zostaje sercem UI** — konkurencja pokazuje
 wszystko (katalog OTU), my pokazujemy to, co załoga *wie*.
 

@@ -105,6 +105,7 @@ def snapshot(action: str) -> None:
         "ship": _read_json(STATE / "ship.json", None),
         "survey": _read_json(STATE / "survey.json", None),
         "crew": _read_json(STATE / "crew.json", None),
+        "cargo": _read_json(STATE / "cargo.json", None),
     }
     existing = sorted(UNDO_DIR.glob("*.json"))
     n = int(existing[-1].stem.split("-")[0]) + 1 if existing else 1
@@ -754,9 +755,11 @@ def action_undo() -> dict:
         _write_json(STATE / "ship.json", snap["ship"])
     if snap["survey"] is not None:
         _write_json(STATE / "survey.json", snap["survey"])
-    # starsze snapshoty nie maja klucza "crew" — wtedy crew.json zostaje bez zmian
+    # starsze snapshoty nie maja klucza "crew"/"cargo" — wtedy plik zostaje bez zmian
     if "crew" in snap:
         _write_json(STATE / "crew.json", snap["crew"] or {"people": []})
+    if "cargo" in snap:
+        _write_json(STATE / "cargo.json", snap["cargo"] or {"items": []})
     log_event("undo", f"Cofnieto akcje: {snap['action']} (korekta przy stole)")
     return {"undone": snap["action"], "state": ship()}
 
@@ -1010,6 +1013,120 @@ def crew_person(body: CrewPersonBody,
                       gm_only=body.log_gm_only)
     _write_json(STATE / "crew.json", st)
     return {"ok": True, "people": len(people)}
+
+
+# ------------------------------------------------------------ ladownia (cargo)
+# Manifest ladowni: pozycje pogrupowane, kazda przypisana (opcjonalnie) do
+# konkretnej ladowni (bay). Pojemnosci wg stat blockow podow (B2 p.34-39).
+# Standardowe wyposazenie (bron, skafandry, sondy) NIE zajmuje cargo —
+# manifest dotyczy tylko rzeczy ponad standard (pojazdy, moduly bazy,
+# dodatkowe SU, znaleziska, materialy specjalne).
+
+CARGO_BAYS = {
+    "hangar-l": {"name_pl": "Hangar pod — lewa burta",
+                 "name_en": "Hangar pod — port", "tons": 467.8},
+    "hangar-p": {"name_pl": "Hangar pod — prawa burta",
+                 "name_en": "Hangar pod — starboard", "tons": 467.8},
+    "sci-l": {"name_pl": "Scientific pod — lewa burta",
+              "name_en": "Scientific pod — port", "tons": 14.4},
+    "sci-p": {"name_pl": "Scientific pod — prawa burta",
+              "name_en": "Scientific pod — starboard", "tons": 14.4},
+    "mission-l": {"name_pl": "Mission pod — lewa burta",
+                  "name_en": "Mission pod — port", "tons": 841.6},
+    "mission-p": {"name_pl": "Mission pod — prawa burta",
+                  "name_en": "Mission pod — starboard", "tons": 841.6},
+}
+CARGO_CAPACITY = round(sum(b["tons"] for b in CARGO_BAYS.values()), 1)
+CARGO_GROUPS = ("supplies", "vehicles", "base", "equipment",
+                "materials", "salvage", "other")
+
+
+def cargo_state() -> dict:
+    return _read_json(STATE / "cargo.json", {"items": []})
+
+
+class CargoItemBody(BaseModel):
+    id: str                        # kebab-case, klucz pozycji
+    name: str = ""                 # puste przy delete
+    group: str = "other"           # klucz z CARGO_GROUPS
+    bay: str = ""                  # klucz z CARGO_BAYS albo "" (nieprzypisane)
+    qty: float = 1                 # liczba sztuk
+    tons_each: float = 0.0         # tonaz za sztuke
+    note: str = ""                 # player-safe
+    gm_note: str = ""              # tylko tryb GM
+    delete: bool = False
+    log_gm_only: bool = False
+
+
+def _cargo_usage(items: list[dict]) -> tuple[float, dict[str, float]]:
+    per_bay = {k: 0.0 for k in CARGO_BAYS}
+    total = 0.0
+    for it in items:
+        tons = round(it.get("qty", 0) * it.get("tons_each", 0.0), 1)
+        total += tons
+        if it.get("bay") in per_bay:
+            per_bay[it["bay"]] += tons
+    return round(total, 1), {k: round(v, 1) for k, v in per_bay.items()}
+
+
+@app.get("/api/cargo")
+def get_cargo(x_gm_token: str | None = Header(default=None)) -> dict:
+    """Manifest ladowni + pojemnosci. Bez naglowka GM pola gm_* sa wyciete."""
+    gm = is_gm(x_gm_token)
+    raw = cargo_state().get("items", [])
+    items = [i if gm else {k: v for k, v in i.items() if not k.startswith("gm_")}
+             for i in raw]
+    used, per_bay = _cargo_usage(raw)
+    return {"items": items, "bays": CARGO_BAYS, "groups": list(CARGO_GROUPS),
+            "capacity": CARGO_CAPACITY, "used": used, "per_bay": per_bay,
+            "gm": gm}
+
+
+@app.post("/api/cargo/item")
+def cargo_item(body: CargoItemBody,
+               x_gm_token: str | None = Header(default=None)) -> dict:
+    """Upsert/delete pozycji manifestu (otwarte przy stole — ewidencja
+    kwatermistrza; kazda zmiana idzie do dziennika i pod undo)."""
+    gm = is_gm(x_gm_token)
+    if not gm:
+        body.log_gm_only = False
+    if body.group not in CARGO_GROUPS:
+        raise HTTPException(422, f"group musi byc jednym z {CARGO_GROUPS}")
+    if body.bay and body.bay not in CARGO_BAYS:
+        raise HTTPException(422, "nieznana ladownia (bay)")
+    if body.qty < 0 or body.tons_each < 0:
+        raise HTTPException(422, "qty i tons_each musza byc >= 0")
+    snapshot("cargo")
+    st = cargo_state()
+    items = st.setdefault("items", [])
+    idx = next((i for i, it in enumerate(items) if it["id"] == body.id), None)
+    if body.delete:
+        if idx is None:
+            raise HTTPException(404, "brak pozycji o tym id")
+        removed = items.pop(idx)
+        log_event("cargo", f"Ladownia: zdjeto z manifestu — "
+                  f"{removed.get('name', body.id)}", gm_only=body.log_gm_only)
+    else:
+        tons = round(body.qty * body.tons_each, 1)
+        old_gm_note = items[idx].get("gm_note", "") if idx is not None else ""
+        item = {"id": body.id, "name": body.name, "group": body.group,
+                "bay": body.bay, "qty": body.qty, "tons_each": body.tons_each,
+                "note": body.note,
+                "gm_note": body.gm_note if gm else old_gm_note}
+        if idx is None:
+            items.append(item)
+            log_event("cargo", f"Ladownia: przyjeto — {body.name} "
+                      f"({body.qty} szt., {tons} t)", gm_only=body.log_gm_only)
+        else:
+            items[idx] = item
+            log_event("cargo", f"Ladownia: aktualizacja — {body.name} "
+                      f"({body.qty} szt., {tons} t)", gm_only=body.log_gm_only)
+    used, _ = _cargo_usage(items)
+    if used > CARGO_CAPACITY:
+        log_event("cargo", f"UWAGA: manifest przekracza pojemnosc ladowni "
+                  f"({used} t / {CARGO_CAPACITY} t)")
+    _write_json(STATE / "cargo.json", st)
+    return {"ok": True, "used": used, "capacity": CARGO_CAPACITY}
 
 
 app.mount("/static", StaticFiles(directory=WEB), name="static")

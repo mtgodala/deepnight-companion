@@ -66,6 +66,10 @@ const PL = {
     rollsTitle: "Historia rzutów", rollsBtnTip: "Historia rzutów (ta sesja)",
     crewBtn: "Załoga", crewBtnTip: "Drzewo załogi ekspedycji (B2 s.42-45)",
     crewTitle: "Załoga ekspedycji",
+    mapBtn: "Mapa", mapBtnTip: "Mapa sektorów",
+    cargoBtn: "Ładownia", cargoBtnTip: "Manifest ładowni (cargo, 2 648 t)",
+    cargoTitle: "Ładownia (cargo)", cargoAdd: "+ pozycja",
+    cargoNote: "Standardowe wyposażenie (broń, skafandry, sondy) nie zajmuje ładowni — manifest dotyczy wszystkiego ponad standard: pojazdów, modułów bazy, dodatkowych SU, znalezisk i materiałów specjalnych.",
   },
   /* dekodery */
   STARPORT: {
@@ -228,7 +232,26 @@ const PL = {
   /* dziennik */
   KIND: { init: "START", scan: "SKAN", jump: "SKOK", skim: "PALIWO",
     wait: "POSTÓJ", note: "WPIS", undo: "COFNIĘCIE", edit: "KOREKTA",
-    shortrange: "SWEEP", security: "OCHRONA", crew: "ZAŁOGA" },
+    shortrange: "SWEEP", security: "OCHRONA", crew: "ZAŁOGA", cargo: "ŁADUNEK" },
+  /* ładownia (manifest cargo) */
+  CARGO_GROUPS: { supplies: "Zapasy (SU)", vehicles: "Pojazdy",
+    base: "Moduły Forward Base", equipment: "Sprzęt i osprzęt",
+    materials: "Materiały specjalne", salvage: "Znaleziska / salvage",
+    other: "Inne" },
+  cargoSummary: (used, cap, free) => `zajęte ${used} t / ${cap} t · wolne ${free} t`,
+  cargoBayUse: (used, cap) => `${used} / ${cap} t`,
+  cargoUnassigned: "nieprzypisane do ładowni",
+  cargoQtyTons: (qty, each, sum) => `${qty} szt. × ${each} t = ${sum} t`,
+  cargoEmptyGroup: "— pusto —",
+  cargoOver: "PRZEŁADOWANIE",
+  cargoFName: "Nazwa pozycji", cargoFGroup: "Grupa", cargoFBay: "Ładownia",
+  cargoFQty: "Ilość (szt.)", cargoFTons: "Tonaż za sztukę (t)",
+  cargoFNote: "Notka (widzą gracze)",
+  cargoAddTitle: "Nowa pozycja manifestu",
+  cargoEditTitle: (n) => `Edycja: ${n}`,
+  cargoDeleteTitle: (n) => `Zdjąć z manifestu: ${n}?`,
+  cargoDeleteBody: "Pozycja zniknie z ładowni (wpis trafi do dziennika; cofnięcie: przycisk undo).",
+  cargoSuHint: "1 t = 100 SU (B3 p.47)",
   /* załoga (drzewo organizacyjne) */
   crewSummary: (named, total) => `etat ${total} · nazwanych: ${named}`,
   crewSuccession: "Sukcesja dowodzenia: XO → Flight → Engineering → Operations (B2 s.44-45). Dowodzenie kolegialne — decyzje w naradzie dowództwa.",
@@ -289,6 +312,10 @@ const EN = {
     rollsTitle: "Roll history", rollsBtnTip: "Roll history (this session)",
     crewBtn: "Crew", crewBtnTip: "Expedition crew tree (B2 p.42-45)",
     crewTitle: "Expedition crew",
+    mapBtn: "Map", mapBtnTip: "Sector map",
+    cargoBtn: "Cargo", cargoBtnTip: "Cargo hold manifest (2,648 t)",
+    cargoTitle: "Cargo hold", cargoAdd: "+ item",
+    cargoNote: "Standard equipment (weapons, suits, probes) does not use cargo space — this manifest tracks everything above standard: vehicles, base modules, extra SU, salvage and specialist materials.",
   },
   STARPORT: {
     A: "class A starport — excellent (shipyard, refined fuel)",
@@ -441,7 +468,26 @@ const EN = {
   srNothing: "nothing found",
   KIND: { init: "START", scan: "SCAN", jump: "JUMP", skim: "FUEL",
     wait: "HOLD", note: "NOTE", undo: "UNDO", edit: "EDIT",
-    shortrange: "SWEEP", security: "SECURITY", crew: "CREW" },
+    shortrange: "SWEEP", security: "SECURITY", crew: "CREW", cargo: "CARGO" },
+  /* cargo hold manifest */
+  CARGO_GROUPS: { supplies: "Supplies (SU)", vehicles: "Vehicles",
+    base: "Forward Base modules", equipment: "Equipment & gear",
+    materials: "Specialist materials", salvage: "Salvage / finds",
+    other: "Other" },
+  cargoSummary: (used, cap, free) => `used ${used} t / ${cap} t · free ${free} t`,
+  cargoBayUse: (used, cap) => `${used} / ${cap} t`,
+  cargoUnassigned: "not assigned to a bay",
+  cargoQtyTons: (qty, each, sum) => `${qty} pcs × ${each} t = ${sum} t`,
+  cargoEmptyGroup: "— empty —",
+  cargoOver: "OVERLOADED",
+  cargoFName: "Item name", cargoFGroup: "Group", cargoFBay: "Bay",
+  cargoFQty: "Quantity (pcs)", cargoFTons: "Tons per piece (t)",
+  cargoFNote: "Note (players see it)",
+  cargoAddTitle: "New manifest item",
+  cargoEditTitle: (n) => `Edit: ${n}`,
+  cargoDeleteTitle: (n) => `Remove from manifest: ${n}?`,
+  cargoDeleteBody: "The item disappears from the hold (logged; undo button reverts).",
+  cargoSuHint: "1 t = 100 SU (B3 p.47)",
   crewSummary: (named, total) => `complement ${total} · named: ${named}`,
   crewSuccession: "Line of command: XO → Flight → Engineering → Operations (B2 p.44-45). Collegiate command — decisions by command conference.",
   crewVacant: "vacant", crewPCBadge: "PC",
@@ -1427,7 +1473,21 @@ async function selectHex(hex) {
   /* skeleton na czas requestu — panel nie "znika" przy wolniejszym API */
   if (!$("hex-desc").innerHTML)
     $("hex-desc").innerHTML = `<div class="skel" style="width:78%"></div><div class="skel" style="width:52%"></div>`;
-  const view = await api(`/api/system/${encodeURIComponent(CUR_SECTOR)}/${hex}`);
+  let view;
+  try {
+    view = await api(`/api/system/${encodeURIComponent(CUR_SECTOR)}/${hex}`);
+  } catch (e) {
+    /* blad API nie moze zostawic wiecznego skeletonu (zgloszenie z Reddita:
+       "wiesza sie" na hexie — objaw 500-tki z dice.roll przed fixem) */
+    $("hex-title").textContent = `${CUR_SECTOR} ${hex}`;
+    $("hex-chips").innerHTML = "";
+    $("hex-desc").innerHTML = `<p style="color:var(--warn)">✖ ${T.trNoteSrv(e.message)}</p>`;
+    $("hex-uwp").innerHTML = "";
+    $("hex-bodies").innerHTML = "";
+    $("hex-detail").innerHTML = "";
+    $("hex-actions").innerHTML = "";
+    return;
+  }
   const here = STATE.position.sector === CUR_SECTOR && STATE.position.hex === hex;
   const shipSec = SECTORS.find((s) => s.name === STATE.position.sector);
   const d = distPc(worldXY(shipSec.x, shipSec.y, STATE.position.hex),
@@ -1599,6 +1659,8 @@ function renderActions(hex, view, here, d) {
 
 async function showJournal() {
   $("main").classList.add("hidden");
+  $("crew-screen").classList.add("hidden");
+  $("cargo-screen").classList.add("hidden");
   $("journal-screen").classList.remove("hidden");
   const rows = await api("/api/journal");
   $("journal-list").innerHTML = rows.slice().reverse().map((r) =>
@@ -1636,6 +1698,7 @@ async function showCrew() {
   $("main").classList.add("hidden");
   $("init-screen").classList.add("hidden");
   $("journal-screen").classList.add("hidden");
+  $("cargo-screen").classList.add("hidden");
   $("crew-screen").classList.remove("hidden");
   CREW = await api("/api/crew");
   renderCrew();
@@ -1810,6 +1873,143 @@ $("crew-close").addEventListener("click", () => {
   $(STATE ? "main" : "init-screen").classList.remove("hidden");
 });
 
+/* ============================== ŁADOWNIA ================================ */
+/* Manifest cargo (state/cargo.json): pozycje pogrupowane, przypisywane do
+   konkretnych ładowni (pojemności wg stat blocków podów, B2 p.34-39).
+   Edycja otwarta przy stole (ewidencja kwatermistrza) — wszystko idzie do
+   dziennika i pod undo. */
+
+let CARGO = null;   // { items, bays, groups, capacity, used, per_bay, gm }
+
+const bayName = (b) => (LANG === "en" ? b.name_en : b.name_pl) || b.name_pl;
+
+async function showCargo() {
+  $("main").classList.add("hidden");
+  $("init-screen").classList.add("hidden");
+  $("journal-screen").classList.add("hidden");
+  $("crew-screen").classList.add("hidden");
+  $("cargo-screen").classList.remove("hidden");
+  CARGO = await api("/api/cargo");
+  renderCargo();
+}
+
+function cargoItemRow(it) {
+  const sum = Math.round(it.qty * it.tons_each * 10) / 10;
+  const bay = it.bay && CARGO.bays[it.bay]
+    ? `<span class="chip chip-dim">${esc(bayName(CARGO.bays[it.bay]))}</span>`
+    : `<span class="chip chip-dim">${T.cargoUnassigned}</span>`;
+  return `<button class="cargo-item" data-id="${esc(it.id)}">` +
+    `<span class="ci-name">${esc(it.name)}</span>` +
+    `<span class="ci-tons">${T.cargoQtyTons(num(it.qty), num(it.tons_each), num(sum))}</span>` +
+    `${bay}` +
+    (it.note ? `<span class="ci-note dim">${esc(it.note)}</span>` : "") +
+    (CARGO.gm && it.gm_note ? `<span class="ci-note gm-note">GM: ${esc(it.gm_note)}</span>` : "") +
+    `</button>`;
+}
+
+function renderCargo() {
+  const free = Math.round((CARGO.capacity - CARGO.used) * 10) / 10;
+  $("cargo-summary").textContent = T.cargoSummary(num(CARGO.used), num(CARGO.capacity), num(free));
+  $("cargo-summary").classList.toggle("over", free < 0);
+
+  $("cargo-bays").innerHTML = Object.entries(CARGO.bays).map(([id, b]) => {
+    const used = CARGO.per_bay[id] || 0;
+    const pct = Math.min(100, Math.round(100 * used / b.tons));
+    const over = used > b.tons;
+    return `<div class="bay-card${over ? " over" : ""}">` +
+      `<div class="bay-name">${esc(bayName(b))}${over ? ` <span class="chip chip-warn">${T.cargoOver}</span>` : ""}</div>` +
+      `<div class="bay-bar"><div class="bay-fill" style="width:${pct}%"></div></div>` +
+      `<div class="bay-use dim">${T.cargoBayUse(num(used), num(b.tons))}</div></div>`;
+  }).join("");
+
+  $("cargo-groups").innerHTML = CARGO.groups.map((g) => {
+    const items = CARGO.items.filter((i) => i.group === g);
+    const sum = Math.round(items.reduce((s, i) => s + i.qty * i.tons_each, 0) * 10) / 10;
+    return `<div class="cargo-group">` +
+      `<h3>${T.CARGO_GROUPS[g] || g} <span class="dim">${sum ? num(sum) + " t" : ""}</span>` +
+      `<button class="cargo-group-add tab-btn" data-group="${g}">+</button>` +
+      (g === "supplies" ? `<span class="dim su-hint">${T.cargoSuHint}</span>` : "") + `</h3>` +
+      (items.length ? items.map(cargoItemRow).join("")
+                    : `<div class="dim ci-empty">${T.cargoEmptyGroup}</div>`) +
+      `</div>`;
+  }).join("");
+
+  $("cargo-groups").querySelectorAll(".cargo-item").forEach((b) =>
+    b.addEventListener("click", () => cargoItemDetail(b.dataset.id)));
+  $("cargo-groups").querySelectorAll(".cargo-group-add").forEach((b) =>
+    b.addEventListener("click", () => cargoItemForm(null, b.dataset.group)));
+}
+
+async function cargoItemDetail(id) {
+  const it = CARGO.items.find((x) => x.id === id);
+  if (!it) return;
+  const act = await showDialog({
+    title: it.name,
+    body: `<p>${T.CARGO_GROUPS[it.group] || it.group} — ` +
+      `${T.cargoQtyTons(num(it.qty), num(it.tons_each), num(Math.round(it.qty * it.tons_each * 10) / 10))}</p>` +
+      (it.note ? `<p>${esc(it.note)}</p>` : "") +
+      (CARGO.gm && it.gm_note ? `<p class="gm-note">GM: ${esc(it.gm_note)}</p>` : ""),
+    fields: [{ type: "select", name: "act", label: "", value: "edit",
+      options: [{ value: "edit", label: T.crewEditWord },
+                { value: "del", label: T.crewDeleteWord }] }],
+  });
+  if (!act) return;
+  if (act.act === "edit") return cargoItemForm(it, it.group);
+  if (act.act === "del") {
+    if (!(await showConfirm(T.cargoDeleteTitle(it.name), T.cargoDeleteBody, T.crewDeleteWord))) return;
+    await api("/api/cargo/item", { method: "POST",
+      body: JSON.stringify({ id: it.id, delete: true }) });
+    return showCargo();
+  }
+}
+
+async function cargoItemForm(it, group) {
+  const bays = [{ value: "", label: "—" },
+    ...Object.entries(CARGO.bays).map(([id, b]) => ({ value: id, label: bayName(b) }))];
+  const groups = CARGO.groups.map((g) => ({ value: g, label: T.CARGO_GROUPS[g] || g }));
+  const fields = [
+    { name: "name", label: T.cargoFName, value: it?.name ?? "" },
+    { type: "select", name: "group", label: T.cargoFGroup, value: it?.group ?? group, options: groups },
+    { type: "select", name: "bay", label: T.cargoFBay, value: it?.bay ?? "", options: bays },
+    { name: "qty", label: T.cargoFQty, value: String(it?.qty ?? 1) },
+    { name: "tons_each", label: T.cargoFTons, value: String(it?.tons_each ?? 0) },
+    { name: "note", label: T.cargoFNote, value: it?.note ?? "" },
+  ];
+  if (CARGO.gm) {
+    fields.push({ name: "gm_note", label: T.crewFGmNote, value: it?.gm_note ?? "" });
+    fields.push({ type: "select", name: "log_gm", label: T.crewFLogGm, value: "0",
+      options: [{ value: "0", label: T.crewLogOpen }, { value: "1", label: T.crewLogGm }] });
+  }
+  const vals = await showDialog({
+    title: it ? T.cargoEditTitle(it.name) : T.cargoAddTitle, fields, okLabel: T.save,
+  });
+  if (!vals || !vals.name.trim()) return;
+  const numVal = (s) => Math.max(0, parseFloat(String(s).replace(",", ".")) || 0);
+  const payload = {
+    id: it?.id ?? slugify(vals.name), name: vals.name.trim(), group: vals.group,
+    bay: vals.bay, qty: numVal(vals.qty), tons_each: numVal(vals.tons_each),
+    note: vals.note,
+  };
+  if (CARGO.gm) {
+    payload.gm_note = vals.gm_note;
+    payload.log_gm_only = vals.log_gm === "1";
+  }
+  await api("/api/cargo/item", { method: "POST", body: JSON.stringify(payload) });
+  showCargo();
+}
+
+function showMap() {
+  $("journal-screen").classList.add("hidden");
+  $("crew-screen").classList.add("hidden");
+  $("cargo-screen").classList.add("hidden");
+  $(STATE ? "main" : "init-screen").classList.remove("hidden");
+}
+
+$("btn-cargo").addEventListener("click", showCargo);
+$("btn-map").addEventListener("click", showMap);
+$("cargo-close").addEventListener("click", showMap);
+$("cargo-add").addEventListener("click", () => cargoItemForm(null, "other"));
+
 /* =============================== START ================================== */
 
 $("btn-undo").addEventListener("click", async () => {
@@ -1852,9 +2052,10 @@ $("init-go").addEventListener("click", async () => {
     $("init-screen").classList.remove("hidden");
     return;
   }
-  // nie odslaniaj mapy, jesli user zdazyl juz otworzyc zaloge/dziennik
+  // nie odslaniaj mapy, jesli user zdazyl juz otworzyc zaloge/dziennik/ladownie
   if ($("crew-screen").classList.contains("hidden") &&
-      $("journal-screen").classList.contains("hidden"))
+      $("journal-screen").classList.contains("hidden") &&
+      $("cargo-screen").classList.contains("hidden"))
     $("main").classList.remove("hidden");
   renderTopbar();
   renderStats();
